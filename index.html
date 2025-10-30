@@ -75,6 +75,7 @@
             font-weight: 600;
             transition: all 0.2s ease;
             text-align: center;
+            min-width: 150px;
         }
 
         .category-btn:hover, .subcategory-btn:hover {
@@ -233,6 +234,40 @@
             margin-bottom: 20px;
         }
 
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .btn-export {
+            background-color: var(--success);
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-whatsapp {
+            background-color: #25D366;
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-copy {
+            background-color: var(--accent);
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
         .form-container {
             background: white;
             padding: 25px;
@@ -367,6 +402,10 @@
             .category-navigation {
                 flex-direction: column;
             }
+
+            .export-buttons {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
@@ -426,6 +465,19 @@
             <div class="admin-header">
                 <h2>Gerenciar Materiais</h2>
                 <button class="btn btn-secondary" id="back-to-main">Voltar ao Painel Principal</button>
+            </div>
+
+            <!-- Botões de Exportação -->
+            <div class="export-buttons">
+                <button class="btn btn-export" id="export-pdf">
+                    📄 Exportar PDF
+                </button>
+                <button class="btn btn-whatsapp" id="share-whatsapp">
+                    📱 Compartilhar WhatsApp
+                </button>
+                <button class="btn btn-copy" id="copy-summary">
+                    📋 Copiar Resumo
+                </button>
             </div>
 
             <div class="form-container">
@@ -496,6 +548,10 @@
         </div>
     </div>
 
+    <!-- Incluir jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
     <script>
         // Dados de categorias e subcategorias
         const categoriesData = {
@@ -538,7 +594,7 @@
             }
         };
 
-        // Dados iniciais ATUALIZADOS com as quantidades corretas
+        // Dados iniciais ATUALIZADOS e CORRIGIDOS
         const initialMaterials = [
             // Mobilidade - Andadores
             { id: 1, nome: "Andador Adulto", categoria: "Mobilidade", subcategoria: "Andadores", quantidade: 7, imagem: "", observacoes: "" },
@@ -689,6 +745,11 @@
         const categorySelect = document.getElementById('material-category');
         const subcategorySelect = document.getElementById('material-subcategory');
 
+        // Elementos de exportação
+        const exportPdfBtn = document.getElementById('export-pdf');
+        const shareWhatsappBtn = document.getElementById('share-whatsapp');
+        const copySummaryBtn = document.getElementById('copy-summary');
+
         // Elementos de navegação
         const categoryView = document.getElementById('category-view');
         const subcategoryView = document.getElementById('subcategory-view');
@@ -708,6 +769,7 @@
 
         // Inicialização
         document.addEventListener('DOMContentLoaded', function() {
+            console.log("Iniciando sistema...");
             loadMaterials();
             renderCategories();
             setupEventListeners();
@@ -715,9 +777,13 @@
             
             // Verificar se há dados salvos no localStorage
             if (materials.length === 0) {
+                console.log("Carregando dados iniciais...");
                 // Se não houver dados, usar os dados iniciais
                 materials = [...initialMaterials];
                 saveMaterials();
+                console.log("Dados iniciais carregados:", materials.length, "materiais");
+            } else {
+                console.log("Dados carregados do localStorage:", materials.length, "materiais");
             }
         });
 
@@ -731,6 +797,11 @@
             cancelEditBtn.addEventListener('click', cancelEdit);
             backToCategoriesBtn.addEventListener('click', showCategoryView);
             backToSubcategoriesBtn.addEventListener('click', showSubcategoryView);
+            
+            // Event listeners para exportação
+            exportPdfBtn.addEventListener('click', exportToPDF);
+            shareWhatsappBtn.addEventListener('click', shareViaWhatsApp);
+            copySummaryBtn.addEventListener('click', copySummaryToClipboard);
             
             // Atalho de teclado para acesso administrativo (Ctrl+Alt+F)
             document.addEventListener('keydown', function(e) {
@@ -746,21 +817,211 @@
             });
         }
 
+        // =============================================
+        // FUNÇÕES DE EXPORTAÇÃO
+        // =============================================
+
+        // Exportar para PDF
+        function exportToPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Título
+            doc.setFontSize(20);
+            doc.setTextColor(40, 40, 40);
+            doc.text("RELATÓRIO FAF - MATERIAIS ORTOPÉDICOS", 105, 15, { align: 'center' });
+            
+            // Data
+            doc.setFontSize(12);
+            doc.setTextColor(100, 100, 100);
+            doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 105, 25, { align: 'center' });
+            
+            // Resumo
+            let yPosition = 40;
+            doc.setFontSize(14);
+            doc.setTextColor(0, 0, 0);
+            doc.text("RESUMO DO ESTOQUE", 20, yPosition);
+            
+            yPosition += 10;
+            doc.setFontSize(10);
+            
+            // Agrupar por categoria
+            const categorias = {};
+            materials.forEach(material => {
+                if (!categorias[material.categoria]) {
+                    categorias[material.categoria] = [];
+                }
+                categorias[material.categoria].push(material);
+            });
+            
+            // Adicionar tabela de resumo
+            const tableData = [];
+            Object.keys(categorias).forEach(categoria => {
+                const total = categorias[categoria].reduce((sum, item) => sum + item.quantidade, 0);
+                tableData.push([categoria, categorias[categoria].length, total]);
+            });
+            
+            doc.autoTable({
+                startY: yPosition,
+                head: [['Categoria', 'Itens', 'Total Unidades']],
+                body: tableData,
+                theme: 'grid',
+                headStyles: { fillColor: [26, 54, 93] },
+                margin: { top: 10 }
+            });
+            
+            yPosition = doc.lastAutoTable.finalY + 15;
+            
+            // Detalhamento por categoria
+            Object.keys(categorias).forEach(categoria => {
+                // Verificar se precisa de nova página
+                if (yPosition > 250) {
+                    doc.addPage();
+                    yPosition = 20;
+                }
+                
+                doc.setFontSize(12);
+                doc.setTextColor(26, 54, 93);
+                doc.text(`CATEGORIA: ${categoria}`, 20, yPosition);
+                yPosition += 8;
+                
+                const categoriaData = categorias[categoria].map(item => [
+                    item.nome,
+                    item.subcategoria,
+                    item.quantidade.toString(),
+                    item.quantidade === 0 ? 'ESGOTADO' : 'DISPONÍVEL'
+                ]);
+                
+                doc.autoTable({
+                    startY: yPosition,
+                    head: [['Material', 'Subcategoria', 'Quantidade', 'Status']],
+                    body: categoriaData,
+                    theme: 'grid',
+                    headStyles: { fillColor: [43, 108, 176] },
+                    styles: { fontSize: 8 },
+                    columnStyles: {
+                        0: { cellWidth: 60 },
+                        1: { cellWidth: 40 },
+                        2: { cellWidth: 25 },
+                        3: { cellWidth: 30 }
+                    }
+                });
+                
+                yPosition = doc.lastAutoTable.finalY + 10;
+            });
+            
+            // Salvar PDF
+            doc.save(`relatorio-faf-${new Date().toISOString().split('T')[0]}.pdf`);
+            showFeedback("PDF gerado com sucesso!", "success");
+        }
+
+        // Compartilhar via WhatsApp
+        function shareViaWhatsApp() {
+            let texto = "📋 *RELATÓRIO FAF - ESTOQUE DE MATERIAIS ORTOPÉDICOS*\n\n";
+            
+            // Resumo por categoria
+            const categorias = {};
+            materials.forEach(material => {
+                if (!categorias[material.categoria]) {
+                    categorias[material.categoria] = [];
+                }
+                categorias[material.categoria].push(material);
+            });
+            
+            Object.keys(categorias).forEach(categoria => {
+                const total = categorias[categoria].reduce((sum, item) => sum + item.quantidade, 0);
+                texto += `🏷️ *${categoria}:* ${categorias[categoria].length} itens, ${total} unidades\n`;
+            });
+            
+            texto += `\n📅 *Data:* ${new Date().toLocaleDateString('pt-BR')}`;
+            texto += `\n⏰ *Hora:* ${new Date().toLocaleTimeString('pt-BR')}`;
+            texto += `\n\n💡 *Itens em falta:* ${materials.filter(m => m.quantidade === 0).length}`;
+            texto += `\n📦 *Total de itens:* ${materials.length}`;
+            
+            // Codificar texto para URL
+            const textoCodificado = encodeURIComponent(texto);
+            const url = `https://wa.me/?text=${textoCodificado}`;
+            
+            // Abrir WhatsApp
+            window.open(url, '_blank');
+            showFeedback("WhatsApp aberto com o relatório!", "success");
+        }
+
+        // Copiar resumo para área de transferência
+        function copySummaryToClipboard() {
+            let texto = "RELATÓRIO FAF - ESTOQUE\n\n";
+            
+            // Resumo por categoria
+            const categorias = {};
+            materials.forEach(material => {
+                if (!categorias[material.categoria]) {
+                    categorias[material.categoria] = [];
+                }
+                categorias[material.categoria].push(material);
+            });
+            
+            Object.keys(categorias).forEach(categoria => {
+                texto += `${categoria}:\n`;
+                categorias[categoria].forEach(material => {
+                    const status = material.quantidade === 0 ? '❌ ESGOTADO' : '✅';
+                    texto += `  ${status} ${material.nome}: ${material.quantidade} unidades\n`;
+                });
+                texto += '\n';
+            });
+            
+            texto += `Data: ${new Date().toLocaleDateString('pt-BR')}\n`;
+            texto += `Total de itens: ${materials.length}\n`;
+            texto += `Itens em falta: ${materials.filter(m => m.quantidade === 0).length}`;
+            
+            // Copiar para área de transferência
+            navigator.clipboard.writeText(texto).then(() => {
+                showFeedback("Resumo copiado para a área de transferência!", "success");
+            }).catch(() => {
+                // Fallback para navegadores mais antigos
+                const textArea = document.createElement('textarea');
+                textArea.value = texto;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showFeedback("Resumo copiado para a área de transferência!", "success");
+            });
+        }
+
+        // =============================================
+        // FUNÇÕES EXISTENTES DO SISTEMA
+        // =============================================
+
         // Carregar materiais do localStorage
         function loadMaterials() {
             const storedMaterials = localStorage.getItem('faf-materials');
             if (storedMaterials) {
-                materials = JSON.parse(storedMaterials);
+                try {
+                    materials = JSON.parse(storedMaterials);
+                    console.log("Materiais carregados do localStorage:", materials);
+                } catch (e) {
+                    console.error("Erro ao carregar materiais:", e);
+                    materials = [];
+                }
+            } else {
+                console.log("Nenhum dado encontrado no localStorage");
+                materials = [];
             }
         }
 
         // Salvar materiais no localStorage
         function saveMaterials() {
-            localStorage.setItem('faf-materials', JSON.stringify(materials));
+            try {
+                localStorage.setItem('faf-materials', JSON.stringify(materials));
+                console.log("Materiais salvos no localStorage");
+            } catch (e) {
+                console.error("Erro ao salvar materiais:", e);
+            }
         }
 
         // Renderizar categorias na tela principal
         function renderCategories() {
+            console.log("Renderizando categorias...");
             categoriesContainer.innerHTML = '';
             
             Object.keys(categoriesData).forEach(category => {
@@ -768,52 +1029,67 @@
                 btn.className = 'category-btn';
                 btn.textContent = category;
                 btn.addEventListener('click', function() {
+                    console.log("Categoria selecionada:", category);
                     selectCategory(category);
                 });
                 
                 categoriesContainer.appendChild(btn);
             });
+            
+            console.log("Categorias renderizadas:", Object.keys(categoriesData).length);
         }
 
         // Selecionar uma categoria
         function selectCategory(category) {
             currentCategory = category;
+            console.log("Categoria definida:", currentCategory);
             renderSubcategories(category);
             showSubcategoryView();
         }
 
         // Renderizar subcategorias
         function renderSubcategories(category) {
+            console.log("Renderizando subcategorias para:", category);
             subcategoriesContainer.innerHTML = '';
             subcategoryTitle.textContent = `Categoria: ${category}`;
             
-            Object.keys(categoriesData[category]).forEach(subcategory => {
-                const btn = document.createElement('button');
-                btn.className = 'subcategory-btn';
-                btn.textContent = subcategory;
-                btn.addEventListener('click', function() {
-                    selectSubcategory(subcategory);
+            if (categoriesData[category]) {
+                Object.keys(categoriesData[category]).forEach(subcategory => {
+                    const btn = document.createElement('button');
+                    btn.className = 'subcategory-btn';
+                    btn.textContent = subcategory;
+                    btn.addEventListener('click', function() {
+                        console.log("Subcategoria selecionada:", subcategory);
+                        selectSubcategory(subcategory);
+                    });
+                    
+                    subcategoriesContainer.appendChild(btn);
                 });
-                
-                subcategoriesContainer.appendChild(btn);
-            });
+                console.log("Subcategorias renderizadas:", Object.keys(categoriesData[category]).length);
+            } else {
+                console.error("Categoria não encontrada:", category);
+            }
         }
 
         // Selecionar uma subcategoria
         function selectSubcategory(subcategory) {
             currentSubcategory = subcategory;
+            console.log("Subcategoria definida:", currentSubcategory);
             renderMaterialsBySubcategory(currentCategory, subcategory);
             showMaterialsView();
         }
 
         // Renderizar materiais por subcategoria
         function renderMaterialsBySubcategory(category, subcategory) {
+            console.log("Renderizando materiais para:", category, "-", subcategory);
             materialsGrid.innerHTML = '';
             materialsTitle.textContent = `${category} - ${subcategory}`;
             
             const filteredMaterials = materials.filter(m => 
                 m.categoria === category && m.subcategoria === subcategory
             );
+            
+            console.log("Materiais filtrados:", filteredMaterials.length);
             
             if (filteredMaterials.length === 0) {
                 materialsGrid.innerHTML = '<p>Nenhum material encontrado nesta subcategoria.</p>';
@@ -860,6 +1136,8 @@
                     updateQuantity(id, -1);
                 });
             });
+            
+            console.log("Materiais renderizados:", filteredMaterials.length);
         }
 
         // Atualizar quantidade de um material
@@ -941,6 +1219,7 @@
             categoryView.style.display = 'block';
             subcategoryView.style.display = 'none';
             materialsView.style.display = 'none';
+            console.log("Mostrando view de categorias");
         }
 
         // Mostrar view de subcategorias
@@ -948,6 +1227,7 @@
             categoryView.style.display = 'none';
             subcategoryView.style.display = 'block';
             materialsView.style.display = 'none';
+            console.log("Mostrando view de subcategorias");
         }
 
         // Mostrar view de materiais
@@ -955,6 +1235,7 @@
             categoryView.style.display = 'none';
             subcategoryView.style.display = 'none';
             materialsView.style.display = 'block';
+            console.log("Mostrando view de materiais");
         }
 
         // Popular selects de categoria e subcategoria
