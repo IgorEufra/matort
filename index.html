@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAF - Sistema de Materiais Ortopédicos</title>
+    <style>
+        :root {
+            --primary: #1a365d;
+            --secondary: #4a5568;
+            --accent: #2b6cb0;
+            --light: #f7fafc;
+            --success: #38a169;
+            --warning: #e53e3e;
+            --text: #2d3748;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--light);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 15px 0;
+            text-align: center;
+            border-radius: 0 0 10px 10px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        /* Tela Principal */
+        #main-screen {
+            display: block;
+        }
+
+        .category-navigation {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        .category-btn, .subcategory-btn {
+            padding: 12px 20px;
+            background-color: white;
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .category-btn:hover, .subcategory-btn:hover {
+            background-color: var(--accent);
+            color: white;
+        }
+
+        .category-btn.active, .subcategory-btn.active {
+            background-color: var(--accent);
+            color: white;
+        }
+
+        .back-btn {
+            padding: 10px 15px;
+            background-color: var(--secondary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-bottom: 15px;
+        }
+
+        .totem-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .material-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            transition: transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .material-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .material-image {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            background-color: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+        }
+
+        .material-info {
+            padding: 15px;
+            flex-grow: 1;
+        }
+
+        .material-name {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: var(--primary);
+        }
+
+        .material-category {
+            font-size: 0.9rem;
+            color: var(--secondary);
+            margin-bottom: 10px;
+        }
+
+        .material-quantity {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 10px 0;
+            text-align: center;
+        }
+
+        .quantity-zero {
+            color: var(--warning);
+        }
+
+        .material-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            font-size: 1rem;
+        }
+
+        .btn-add {
+            background-color: var(--success);
+            color: white;
+            flex: 1;
+            margin-right: 5px;
+        }
+
+        .btn-remove {
+            background-color: var(--warning);
+            color: white;
+            flex: 1;
+            margin-left: 5px;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: scale(1.05);
+        }
+
+        .btn:disabled {
+            background-color: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .admin-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: var(--secondary);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            z-index: 100;
+        }
+
+        .admin-btn:hover {
+            background-color: var(--primary);
+        }
+
+        /* Tela de Administração */
+        #admin-screen {
+            display: none;
+        }
+
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .form-container {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background-color: var(--accent);
+            color: white;
+            padding: 12px 20px;
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary);
+            color: white;
+        }
+
+        .materials-list {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .material-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .material-item:last-child {
+            border-bottom: none;
+        }
+
+        .material-details {
+            flex: 1;
+        }
+
+        .material-actions-admin {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-edit {
+            background-color: var(--accent);
+            color: white;
+        }
+
+        .btn-delete {
+            background-color: var(--warning);
+            color: white;
+        }
+
+        /* Modal de PIN */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal h2 {
+            margin-bottom: 15px;
+            color: var(--primary);
+        }
+
+        .feedback {
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .success {
+            background-color: #c6f6d5;
+            color: #22543d;
+        }
+
+        .error {
+            background-color: #fed7d7;
+            color: #742a2a;
+        }
+
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .totem-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            }
+            
+            .material-actions-admin {
+                flex-direction: column;
+            }
+            
+            .category-navigation {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Tela Principal -->
+    <div id="main-screen">
+        <header>
+            <div class="container">
+                <h1>FAF - Sistema de Materiais Ortopédicos</h1>
+                <p class="subtitle">Controle de Estoque - Balanço de Materiais</p>
+            </div>
+        </header>
+
+        <div class="container">
+            <div id="feedback-message" class="feedback" style="display: none;"></div>
+            
+            <!-- Navegação por Categorias -->
+            <div id="category-view">
+                <h2>Selecione uma Categoria</h2>
+                <div class="category-navigation" id="categories-container">
+                    <!-- As categorias serão geradas dinamicamente aqui -->
+                </div>
+            </div>
+            
+            <!-- Navegação por Subcategorias -->
+            <div id="subcategory-view" style="display: none;">
+                <button class="back-btn" id="back-to-categories">← Voltar para Categorias</button>
+                <h2 id="subcategory-title">Selecione uma Subcategoria</h2>
+                <div class="category-navigation" id="subcategories-container">
+                    <!-- As subcategorias serão geradas dinamicamente aqui -->
+                </div>
+            </div>
+            
+            <!-- Lista de Materiais -->
+            <div id="materials-view" style="display: none;">
+                <button class="back-btn" id="back-to-subcategories">← Voltar para Subcategorias</button>
+                <h2 id="materials-title">Materiais</h2>
+                <div class="totem-grid" id="materials-grid">
+                    <!-- Os cards de materiais serão gerados dinamicamente aqui -->
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-btn" id="admin-access-btn" title="Acesso Administrativo">⚙️</div>
+    </div>
+
+    <!-- Tela de Administração -->
+    <div id="admin-screen">
+        <header>
+            <div class="container">
+                <h1>FAF - Área Administrativa</h1>
+                <p class="subtitle">Cadastro e Gerenciamento de Materiais</p>
+            </div>
+        </header>
+
+        <div class="container">
+            <div class="admin-header">
+                <h2>Gerenciar Materiais</h2>
+                <button class="btn btn-secondary" id="back-to-main">Voltar ao Painel Principal</button>
+            </div>
+
+            <div class="form-container">
+                <h3 id="form-title">Cadastrar Novo Material</h3>
+                <form id="material-form">
+                    <input type="hidden" id="material-id">
+                    
+                    <div class="form-group">
+                        <label for="material-name">Nome do Material</label>
+                        <input type="text" id="material-name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="material-category">Categoria</label>
+                        <select id="material-category" required>
+                            <option value="">Selecione uma categoria</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="material-subcategory">Subcategoria</label>
+                        <select id="material-subcategory" required>
+                            <option value="">Selecione uma subcategoria</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="material-quantity">Quantidade Inicial</label>
+                        <input type="number" id="material-quantity" min="0" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="material-image">Imagem (URL)</label>
+                        <input type="text" id="material-image" placeholder="https://exemplo.com/imagem.jpg">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="material-notes">Observações</label>
+                        <textarea id="material-notes" rows="3"></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" id="submit-btn">Cadastrar Material</button>
+                    <button type="button" class="btn btn-secondary" id="cancel-edit" style="display: none;">Cancelar Edição</button>
+                </form>
+            </div>
+
+            <div class="materials-list">
+                <h3>Materiais Cadastrados</h3>
+                <div id="materials-list-container">
+                    <!-- Lista de materiais será gerada aqui -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de PIN -->
+    <div class="modal" id="pin-modal">
+        <div class="modal-content">
+            <h2>Acesso Administrativo</h2>
+            <p>Digite o PIN para acessar a área de administração:</p>
+            <div class="form-group">
+                <input type="password" id="pin-input" placeholder="PIN de acesso">
+            </div>
+            <div class="form-group">
+                <button class="btn btn-primary" id="confirm-pin">Confirmar</button>
+                <button class="btn btn-secondary" id="cancel-pin">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dados de categorias e subcategorias
+        const categoriesData = {
+            "Mobilidade": {
+                "Andadores": ["Andador Adulto", "Andador Infantil"],
+                "Bengalas": ["Bengala Adulto", "Bengala Infantil", "Bengala 4 Pontas"],
+                "Cadeiras de Rodas": ["Cadeira de Rodas Adulto até 90 kg", "Cadeira de Rodas Adulto 120kg", 
+                                     "Cadeira de Rodas Adulto Semi Obeso", "Cadeira de Rodas Infantil", 
+                                     "Cadeira de Rodas de Elevação Perna", "Cadeira de Rodas de Transferência Adulto"],
+                "Muletas": ["Muletas Axilar Adulto", "Muleta Axilar Infantil", 
+                           "Muletas Canadense Adulto", "Muleta Canadense Infantil"],
+                "Cadeiras de Banho": ["Cadeira de Banho até 85 kg", "Cadeira de Banho até 100 kg"]
+            },
+            "Imobilização": {
+                "Colares Cervicais": ["Colar Cervical para TQT EVA / Polietileno", "Colar Cervical EVA/Polietileno"],
+                "Joelhos": ["Joelheira", "Joelheira Articulada", "Imobilizador de Joelho"],
+                "Tornozeleiras": ["Estabilizador de Tornozelo"],
+                "Punhos": ["Tala para Punho Direito", "Tala para Punho Esquerdo", "Tala para Punho e Polegar"],
+                "Coletes": ["Colete Jewett", "Colete Putti Baixo", "Colete Putti Alto"],
+                "Outros Imobilização": ["Suporte de Ombro"]
+            },
+            "Suporte e Conforto": {
+                "Calçados": ["Sandália Baruk Plana", "Sandália Baruk Retropé", "Robofoot"],
+                "Cintas": ["Cinta Abdominal 100 x 20cm"],
+                "Almofadas": ["Almofada para Conforto da Próstata", "Cunha Almofadada"],
+                "Tipoias": ["Tipoia M Bilateral", "Tipoia G Bilateral", "Tipoia P Bilateral", "Tipoia Infantil"]
+            },
+            "Equipamentos Hospitalares": {
+                "Camas": ["Cama Hospitalar"],
+                "Colchões": ["Colchão Caixa de Ovo", "Colchão Hospitalar", "Colchão Pneumático"],
+                "Respiratórios": ["Cilindro de Oxigênio Hospitalar", "Inalador", "Respiratório"],
+                "Equipamentos Diversos": ["Aspirador Cirúrgico", "Bomba a Vácuo Aspiradora", "Bomba de Pressão", 
+                          "Guincho Hospitalar", "Suporte para Soro", "Termômetro Sensor", "Papagaio"]
+            },
+            "Insumos": {
+                "Fraldas": ["Fralda Descartável Adulto Tamanho G", "Fralda Descartável Adulto Tamanho M", 
+                           "Fralda Descartável Adulto Tamanho XG"],
+                "Sondas": ["Sonda Uretral"],
+                "Outros Insumos": ["Ap. Pressão Digital", "Calha para Pé", "Cesta Básica", "Comadre"]
+            }
+        };
+
+        // Dados iniciais ATUALIZADOS com as quantidades corretas
+        const initialMaterials = [
+            // Mobilidade - Andadores
+            { id: 1, nome: "Andador Adulto", categoria: "Mobilidade", subcategoria: "Andadores", quantidade: 7, imagem: "", observacoes: "" },
+            { id: 2, nome: "Andador Infantil", categoria: "Mobilidade", subcategoria: "Andadores", quantidade: 3, imagem: "", observacoes: "" },
+            
+            // Mobilidade - Bengalas
+            { id: 3, nome: "Bengala Adulto", categoria: "Mobilidade", subcategoria: "Bengalas", quantidade: 1, imagem: "", observacoes: "" },
+            { id: 4, nome: "Bengala Infantil", categoria: "Mobilidade", subcategoria: "Bengalas", quantidade: 1, imagem: "", observacoes: "" },
+            { id: 5, nome: "Bengala 4 Pontas", categoria: "Mobilidade", subcategoria: "Bengalas", quantidade: 2, imagem: "", observacoes: "" },
+            
+            // Mobilidade - Cadeiras de Rodas
+            { id: 6, nome: "Cadeira de Rodas Adulto até 90 kg", categoria: "Mobilidade", subcategoria: "Cadeiras de Rodas", quantidade: 8, imagem: "", observacoes: "" },
+            { id: 7, nome: "Cadeira de Rodas Adulto 120kg", categoria: "Mobilidade", subcategoria: "Cadeiras de Rodas", quantidade: 1, imagem: "", observacoes: "" },
+            { id: 8, nome: "Cadeira de Rodas Adulto Semi Obeso", categoria: "Mobilidade", subcategoria: "Cadeiras de Rodas", quantidade: 0, imagem: "", observacoes: "" },
+            { id: 9, nome: "Cadeira de Rodas Infantil", categoria: "Mobilidade", subcategoria: "Cadeiras de Rodas", quantidade: 1, imagem: "", observacoes: "" },
+            { id: 10, nome: "Cadeira de Rodas de Elevação Perna", categoria: "Mobilidade", subcategoria: "Cadeiras de Rodas", quantidade: 0, imagem: "", observacoes: "" },
+            { id: 11, nome: "Cadeira de Rodas de Transferência Adulto", categoria: "Mobilidade", subcategoria: "Cadeiras de Rodas", quantidade: 1, imagem: "", observacoes: "" },
+            
+            // Mobilidade - Muletas
+            { id: 12, nome: "Muletas Axilar Adulto", categoria: "Mobilidade", subcategoria: "Muletas", quantidade: 10, imagem: "", observacoes: "" },
+            { id: 13, nome: "Muleta Axilar Infantil", categoria: "Mobilidade", subcategoria: "Muletas", quantidade: 2, imagem: "", observacoes: "" },
+            { id: 14, nome: "Muletas Canadense Adulto", categoria: "Mobilidade", subcategoria: "Muletas", quantidade: 8, imagem: "", observacoes: "" },
+            { id: 15, nome: "Muleta Canadense Infantil", categoria: "Mobilidade", subcategoria: "Muletas", quantidade: 1, imagem: "", observacoes: "" },
+            
+            // Mobilidade - Cadeiras de Banho
+            { id: 16, nome: "Cadeira de Banho até 85 kg", categoria: "Mobilidade", subcategoria: "Cadeiras de Banho", quantidade: 4, imagem: "", observacoes: "" },
+            { id: 17, nome: "Cadeira de Banho até 100 kg", categoria: "Mobilidade", subcategoria: "Cadeiras de Banho", quantidade: 1, imagem: "", observacoes: "" },
+            
+            // Imobilização - Colares Cervicais
+            { id: 18, nome: "Colar Cervical para TQT EVA / Polietileno", categoria: "Imobilização", subcategoria: "Colares Cervicais", quantidade: 1, imagem: "", observacoes: "" },
+            { id: 19, nome: "Colar Cervical EVA/Polietileno", categoria: "Imobilização", subcategoria: "Colares Cervicais", quantidade: 1, imagem: "", observacoes: "" },
+            
+            // Imobilização - Joelhos
+            { id: 20, nome: "Joelheira", categoria: "Imobilização", subcategoria: "Joelhos", quantidade: 2, imagem: "", observacoes: "" },
+            { id: 21, nome: "Joelheira Articulada - P", categoria: "Imobilização", subcategoria: "Joelhos", quantidade: 3, imagem: "", observacoes: "" },
+            { id: 22, nome: "Joelheira Articulada - M", categoria: "Imobilização", subcategoria: "Joelhos", quantidade: 2, imagem: "", observacoes: "" },
+            { id: 23, nome: "Joelheira Articulada - G", categoria: "Imobilização", subcategoria: "Joelhos", quantidade: 1, imagem: "", observacoes: "" },
+            { id: 24, nome: "Imobilizador de Joelho - 50 cm", categoria: "Imobilização", subcategoria: "Joelhos", quantidade: 2, imagem: "", observacoes: "" },
+            { id: 25, nome: "Imobilizador de Joelho - 60 cm", categoria: "Imobilização", subcategoria: "Joelhos", quantidade: 4, imagem: "", observacoes: "" },
+            { id: 26, nome: "Imobilizador de Joelho - 70 cm", categoria: "Imobilização", subcategoria: "Joelhos", quantidade: 1, imagem: "", observacoes: "" },
+            
+            // Imobilização - Tornozeleiras
+            { id: 27, nome: "Estabilizador de Tornozelo - P", categoria: "Imobilização", subcategoria: "Tornozeleiras", quantidade: 3, imagem: "", observacoes: "" },
+            { id: 28, nome: "Estabilizador de Tornozelo - M", categoria: "Imobilização", subcategoria: "Tornozeleiras", quantidade: 3, imagem: "", observacoes: "" },
+            { id: 29, nome: "Estabilizador de Tornozelo - G", categoria: "Imobilização", subcategoria: "Tornozeleiras", quantidade: 2, imagem: "", observacoes: "" },
+            
+            // Imobilização - Punhos
+            { id: 30, nome: "Tala para Punho Direito - P", categoria: "Imobilização", subcategoria: "Punhos", quantidade: 2, imagem: "", observacoes: "" },
+            { id: 31, nome: "Tala para Punho Direito - M", categoria: "Imobilização", subcategoria: "Punhos", quantidade: 1, imagem: "", observacoes: "" },
+            { id: 32, nome: "Tala para Punho Direito - G", categoria: "Imobilização", subcategoria: "Punhos", quantidade: 1, imagem: "", observacoes: "" },
+            { id: 33, nome: "Tala para Punho Esquerdo - M", categoria: "Imobilização", subcategoria: "Punhos", quantidade: 3, imagem: "", observacoes: "" },
+            { id: 34, nome: "Tala para Punho Esquerdo - G", categoria: "Imobilização", subcategoria: "Punhos", quantidade: 3, imagem: "", observacoes: "" },
+            { id: 35, nome: "Tala para Punho Esquerdo - GG", categoria: "Imobilização", subcategoria: "Punhos", quantidade: 2, imagem: "", observacoes: "" },
+            { id: 36, nome: "Tala para Punho e Polegar - M Direito", categoria: "Imobilização", subcategoria: "Punhos", quantidade: 1, imagem: "", observacoes: "" },
+            
+            // Imobilização - Coletes
+            { id: 37, nome: "Colete Jewett", categoria: "Imobilização", subcategoria: "Coletes", quantidade: 1, imagem: "", observacoes: "" },
+            { id: 38, nome: "Colete Putti Baixo - P", categoria: "Imobilização", subcategoria: "Coletes", quantidade: 3, imagem: "", observacoes: "" },
+            { id: 39, nome: "Colete Putti Baixo - M", categoria: "Imobilização", subcategoria: "Coletes", quantidade: 2, imagem: "", observacoes: "" },
+            { id: 40, nome: "Colete Putti Baixo - G", categoria: "Imobilização", subcategoria: "Coletes", quantidade: 2, imagem: "", observacoes: "" },
+            { id: 41, nome: "Colete Putti Alto - P", categoria: "Imobilização", subcategoria: "Coletes", quantidade: 1, imagem: "", observacoes: "" },
+            { id: 42, nome: "Colete Putti Alto - M", categoria: "Imobilização", subcategoria: "Coletes", quantidade: 2, imagem: "", observacoes: "" },
+            { id: 43, nome: "Colete Putti Alto - G", categoria: "Imobilização", subcategoria: "Coletes", quantidade: 3, imagem: "", observacoes: "" },
+            { id: 44, nome: "Colete Putti Alto - GG", categoria: "Imobilização", subcategoria: "Coletes", quantidade: 1, imagem: "", observacoes: "" },
+            
+            // Imobilização - Outros
+            { id: 45, nome: "Suporte de Ombro", categoria: "Imobilização", subcategoria: "Outros Imobilização", quantidade: 1, imagem: "", observacoes: "" },
+            
+            // Suporte e Conforto - Calçados
+            { id: 46, nome: "Sandália Baruk Plana - M", categoria: "Suporte e Conforto", subcategoria: "Calçados", quantidade: 4, imagem: "", observacoes: "" },
+            { id: 47, nome: "Sandália Baruk Retropé - M", categoria: "Suporte e Conforto", subcategoria: "Calçados", quantidade: 1, imagem: "", observacoes: "" },
+            { id: 48, nome: "Sandália Baruk Retropé - P", categoria: "Suporte e Conforto", subcategoria: "Calçados", quantidade: 1, imagem: "", observacoes: "" },
+            { id: 49, nome: "Robofoot - PP", categoria: "Suporte e Conforto", subcategoria: "Calçados", quantidade: 1, imagem: "", observacoes: "" },
+            { id: 50, nome: "Robofoot - P", categoria: "Suporte e Conforto", subcategoria: "Calçados", quantidade: 6, imagem: "", observacoes: "" },
+            { id: 51, nome: "Robofoot - M", categoria: "Suporte e Conforto", subcategoria: "Calçados", quantidade: 7, imagem: "", observacoes: "" },
+            { id: 52, nome: "Robofoot - G", categoria: "Suporte e Conforto", subcategoria: "Calçados", quantidade: 6, imagem: "", observacoes: "" },
+            
+            // Suporte e Conforto - Cintas
+            { id: 53, nome: "Cinta Abdominal 100 x 20cm", categoria: "Suporte e Conforto", subcategoria: "Cintas", quantidade: 1, imagem: "", observacoes: "" },
+            
+            // Suporte e Conforto - Almofadas
+            { id: 54, nome: "Almofada para Conforto da Próstata", categoria: "Suporte e Conforto", subcategoria: "Almofadas", quantidade: 1, imagem: "", observacoes: "" },
+            { id: 55, nome: "Cunha Almofadada", categoria: "Suporte e Conforto", subcategoria: "Almofadas", quantidade: 1, imagem: "", observacoes: "" },
+            
+            // Suporte e Conforto - Tipoias
+            { id: 56, nome: "Tipoia M Bilateral", categoria: "Suporte e Conforto", subcategoria: "Tipoias", quantidade: 14, imagem: "", observacoes: "" },
+            { id: 57, nome: "Tipoia G Bilateral", categoria: "Suporte e Conforto", subcategoria: "Tipoias", quantidade: 4, imagem: "", observacoes: "" },
+            { id: 58, nome: "Tipoia P Bilateral", categoria: "Suporte e Conforto", subcategoria: "Tipoias", quantidade: 4, imagem: "", observacoes: "" },
+            { id: 59, nome: "Tipoia Infantil", categoria: "Suporte e Conforto", subcategoria: "Tipoias", quantidade: 1, imagem: "", observacoes: "" },
+            
+            // Equipamentos Hospitalares - Camas
+            { id: 60, nome: "Cama Hospitalar", categoria: "Equipamentos Hospitalares", subcategoria: "Camas", quantidade: 5, imagem: "", observacoes: "" },
+            
+            // Equipamentos Hospitalares - Colchões
+            { id: 61, nome: "Colchão Caixa de Ovo", categoria: "Equipamentos Hospitalares", subcategoria: "Colchões", quantidade: 2, imagem: "", observacoes: "" },
+            { id: 62, nome: "Colchão Hospitalar", categoria: "Equipamentos Hospitalares", subcategoria: "Colchões", quantidade: 2, imagem: "", observacoes: "" },
+            { id: 63, nome: "Colchão Pneumático", categoria: "Equipamentos Hospitalares", subcategoria: "Colchões", quantidade: 1, imagem: "", observacoes: "" },
+            
+            // Equipamentos Hospitalares - Respiratórios
+            { id: 64, nome: "Cilindro de Oxigênio Hospitalar", categoria: "Equipamentos Hospitalares", subcategoria: "Respiratórios", quantidade: 1, imagem: "", observacoes: "" },
+            { id: 65, nome: "Inalador", categoria: "Equipamentos Hospitalares", subcategoria: "Respiratórios", quantidade: 4, imagem: "", observacoes: "" },
+            { id: 66, nome: "Respiratório", categoria: "Equipamentos Hospitalares", subcategoria: "Respiratórios", quantidade: 0, imagem: "", observacoes: "" },
+            
+            // Equipamentos Hospitalares - Equipamentos Diversos
+            { id: 67, nome: "Aspirador Cirúrgico", categoria: "Equipamentos Hospitalares", subcategoria: "Equipamentos Diversos", quantidade: 4, imagem: "", observacoes: "" },
+            { id: 68, nome: "Bomba a Vácuo Aspiradora", categoria: "Equipamentos Hospitalares", subcategoria: "Equipamentos Diversos", quantidade: 1, imagem: "", observacoes: "" },
+            { id: 69, nome: "Bomba de Pressão", categoria: "Equipamentos Hospitalares", subcategoria: "Equipamentos Diversos", quantidade: 1, imagem: "", observacoes: "" },
+            { id: 70, nome: "Guincho Hospitalar", categoria: "Equipamentos Hospitalares", subcategoria: "Equipamentos Diversos", quantidade: 1, imagem: "", observacoes: "" },
+            { id: 71, nome: "Suporte para Soro", categoria: "Equipamentos Hospitalares", subcategoria: "Equipamentos Diversos", quantidade: 1, imagem: "", observacoes: "" },
+            { id: 72, nome: "Termômetro Sensor", categoria: "Equipamentos Hospitalares", subcategoria: "Equipamentos Diversos", quantidade: 3, imagem: "", observacoes: "" },
+            { id: 73, nome: "Papagaio", categoria: "Equipamentos Hospitalares", subcategoria: "Equipamentos Diversos", quantidade: 1, imagem: "", observacoes: "" },
+            
+            // Insumos - Fraldas
+            { id: 74, nome: "Fralda Descartável Adulto Tamanho G", categoria: "Insumos", subcategoria: "Fraldas", quantidade: 0, imagem: "", observacoes: "" },
+            { id: 75, nome: "Fralda Descartável Adulto Tamanho M", categoria: "Insumos", subcategoria: "Fraldas", quantidade: 1, imagem: "", observacoes: "" },
+            { id: 76, nome: "Fralda Descartável Adulto Tamanho XG", categoria: "Insumos", subcategoria: "Fraldas", quantidade: 3, imagem: "", observacoes: "" },
+            
+            // Insumos - Sondas
+            { id: 77, nome: "Sonda Uretral", categoria: "Insumos", subcategoria: "Sondas", quantidade: 2, imagem: "", observacoes: "" },
+            
+            // Insumos - Outros
+            { id: 78, nome: "Ap. Pressão Digital", categoria: "Insumos", subcategoria: "Outros Insumos", quantidade: 3, imagem: "", observacoes: "" },
+            { id: 79, nome: "Calha para Pé", categoria: "Insumos", subcategoria: "Outros Insumos", quantidade: 1, imagem: "", observacoes: "" },
+            { id: 80, nome: "Cesta Básica", categoria: "Insumos", subcategoria: "Outros Insumos", quantidade: 2, imagem: "", observacoes: "" },
+            { id: 81, nome: "Comadre", categoria: "Insumos", subcategoria: "Outros Insumos", quantidade: 6, imagem: "", observacoes: "" }
+        ];
+
+        // PIN de acesso
+        const ADMIN_PIN = "1234";
+
+        // Elementos da DOM
+        const mainScreen = document.getElementById('main-screen');
+        const adminScreen = document.getElementById('admin-screen');
+        const adminAccessBtn = document.getElementById('admin-access-btn');
+        const backToMainBtn = document.getElementById('back-to-main');
+        const pinModal = document.getElementById('pin-modal');
+        const pinInput = document.getElementById('pin-input');
+        const confirmPinBtn = document.getElementById('confirm-pin');
+        const cancelPinBtn = document.getElementById('cancel-pin');
+        const materialsGrid = document.getElementById('materials-grid');
+        const materialForm = document.getElementById('material-form');
+        const materialsListContainer = document.getElementById('materials-list-container');
+        const feedbackMessage = document.getElementById('feedback-message');
+        const formTitle = document.getElementById('form-title');
+        const submitBtn = document.getElementById('submit-btn');
+        const cancelEditBtn = document.getElementById('cancel-edit');
+        const materialIdInput = document.getElementById('material-id');
+        const categorySelect = document.getElementById('material-category');
+        const subcategorySelect = document.getElementById('material-subcategory');
+
+        // Elementos de navegação
+        const categoryView = document.getElementById('category-view');
+        const subcategoryView = document.getElementById('subcategory-view');
+        const materialsView = document.getElementById('materials-view');
+        const categoriesContainer = document.getElementById('categories-container');
+        const subcategoriesContainer = document.getElementById('subcategories-container');
+        const backToCategoriesBtn = document.getElementById('back-to-categories');
+        const backToSubcategoriesBtn = document.getElementById('back-to-subcategories');
+        const subcategoryTitle = document.getElementById('subcategory-title');
+        const materialsTitle = document.getElementById('materials-title');
+
+        // Estado da aplicação
+        let materials = [];
+        let editingMaterialId = null;
+        let currentCategory = null;
+        let currentSubcategory = null;
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            loadMaterials();
+            renderCategories();
+            setupEventListeners();
+            populateCategorySelects();
+            
+            // Verificar se há dados salvos no localStorage
+            if (materials.length === 0) {
+                // Se não houver dados, usar os dados iniciais
+                materials = [...initialMaterials];
+                saveMaterials();
+            }
+        });
+
+        // Configurar event listeners
+        function setupEventListeners() {
+            adminAccessBtn.addEventListener('click', showPinModal);
+            backToMainBtn.addEventListener('click', showMainScreen);
+            confirmPinBtn.addEventListener('click', verifyPin);
+            cancelPinBtn.addEventListener('click', hidePinModal);
+            materialForm.addEventListener('submit', handleMaterialSubmit);
+            cancelEditBtn.addEventListener('click', cancelEdit);
+            backToCategoriesBtn.addEventListener('click', showCategoryView);
+            backToSubcategoriesBtn.addEventListener('click', showSubcategoryView);
+            
+            // Atalho de teclado para acesso administrativo (Ctrl+Alt+F)
+            document.addEventListener('keydown', function(e) {
+                if (e.ctrlKey && e.altKey && e.key === 'F') {
+                    e.preventDefault();
+                    showPinModal();
+                }
+            });
+            
+            // Atualizar subcategorias quando a categoria for alterada
+            categorySelect.addEventListener('change', function() {
+                updateSubcategorySelect(this.value);
+            });
+        }
+
+        // Carregar materiais do localStorage
+        function loadMaterials() {
+            const storedMaterials = localStorage.getItem('faf-materials');
+            if (storedMaterials) {
+                materials = JSON.parse(storedMaterials);
+            }
+        }
+
+        // Salvar materiais no localStorage
+        function saveMaterials() {
+            localStorage.setItem('faf-materials', JSON.stringify(materials));
+        }
+
+        // Renderizar categorias na tela principal
+        function renderCategories() {
+            categoriesContainer.innerHTML = '';
+            
+            Object.keys(categoriesData).forEach(category => {
+                const btn = document.createElement('button');
+                btn.className = 'category-btn';
+                btn.textContent = category;
+                btn.addEventListener('click', function() {
+                    selectCategory(category);
+                });
+                
+                categoriesContainer.appendChild(btn);
+            });
+        }
+
+        // Selecionar uma categoria
+        function selectCategory(category) {
+            currentCategory = category;
+            renderSubcategories(category);
+            showSubcategoryView();
+        }
+
+        // Renderizar subcategorias
+        function renderSubcategories(category) {
+            subcategoriesContainer.innerHTML = '';
+            subcategoryTitle.textContent = `Categoria: ${category}`;
+            
+            Object.keys(categoriesData[category]).forEach(subcategory => {
+                const btn = document.createElement('button');
+                btn.className = 'subcategory-btn';
+                btn.textContent = subcategory;
+                btn.addEventListener('click', function() {
+                    selectSubcategory(subcategory);
+                });
+                
+                subcategoriesContainer.appendChild(btn);
+            });
+        }
+
+        // Selecionar uma subcategoria
+        function selectSubcategory(subcategory) {
+            currentSubcategory = subcategory;
+            renderMaterialsBySubcategory(currentCategory, subcategory);
+            showMaterialsView();
+        }
+
+        // Renderizar materiais por subcategoria
+        function renderMaterialsBySubcategory(category, subcategory) {
+            materialsGrid.innerHTML = '';
+            materialsTitle.textContent = `${category} - ${subcategory}`;
+            
+            const filteredMaterials = materials.filter(m => 
+                m.categoria === category && m.subcategoria === subcategory
+            );
+            
+            if (filteredMaterials.length === 0) {
+                materialsGrid.innerHTML = '<p>Nenhum material encontrado nesta subcategoria.</p>';
+                return;
+            }
+            
+            filteredMaterials.forEach(material => {
+                const card = document.createElement('div');
+                card.className = 'material-card';
+                
+                const imageContent = material.imagem 
+                    ? `<img src="${material.imagem}" alt="${material.nome}" class="material-image">`
+                    : `<div class="material-image">🩺</div>`;
+                
+                card.innerHTML = `
+                    ${imageContent}
+                    <div class="material-info">
+                        <div class="material-name">${material.nome}</div>
+                        <div class="material-category">${material.categoria} - ${material.subcategoria}</div>
+                        <div class="material-quantity ${material.quantidade === 0 ? 'quantity-zero' : ''}">
+                            ${material.quantidade} ${material.quantidade === 1 ? 'unidade' : 'unidades'}
+                        </div>
+                        <div class="material-actions">
+                            <button class="btn btn-add" data-id="${material.id}">+ Adicionar</button>
+                            <button class="btn btn-remove" data-id="${material.id}" ${material.quantidade === 0 ? 'disabled' : ''}>- Retirar</button>
+                        </div>
+                    </div>
+                `;
+                
+                materialsGrid.appendChild(card);
+            });
+            
+            // Adicionar event listeners aos botões
+            document.querySelectorAll('.btn-add').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = parseInt(this.getAttribute('data-id'));
+                    updateQuantity(id, 1);
+                });
+            });
+            
+            document.querySelectorAll('.btn-remove').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = parseInt(this.getAttribute('data-id'));
+                    updateQuantity(id, -1);
+                });
+            });
+        }
+
+        // Atualizar quantidade de um material
+        function updateQuantity(id, change) {
+            const materialIndex = materials.findIndex(m => m.id === id);
+            if (materialIndex !== -1) {
+                materials[materialIndex].quantidade += change;
+                
+                // Garantir que a quantidade não seja negativa
+                if (materials[materialIndex].quantidade < 0) {
+                    materials[materialIndex].quantidade = 0;
+                }
+                
+                saveMaterials();
+                renderMaterialsBySubcategory(currentCategory, currentSubcategory);
+                
+                // Mostrar feedback
+                showFeedback(`Quantidade de ${materials[materialIndex].nome} atualizada!`, 'success');
+                
+                // Se a quantidade chegou a zero, mostrar alerta visual
+                if (materials[materialIndex].quantidade === 0) {
+                    showFeedback(`ATENÇÃO: ${materials[materialIndex].nome} está sem estoque!`, 'error');
+                }
+            }
+        }
+
+        // Mostrar feedback na tela
+        function showFeedback(message, type) {
+            feedbackMessage.textContent = message;
+            feedbackMessage.className = `feedback ${type}`;
+            feedbackMessage.style.display = 'block';
+            
+            setTimeout(() => {
+                feedbackMessage.style.display = 'none';
+            }, 3000);
+        }
+
+        // Mostrar modal de PIN
+        function showPinModal() {
+            pinModal.style.display = 'flex';
+            pinInput.focus();
+        }
+
+        // Esconder modal de PIN
+        function hidePinModal() {
+            pinModal.style.display = 'none';
+            pinInput.value = '';
+        }
+
+        // Verificar PIN
+        function verifyPin() {
+            if (pinInput.value === ADMIN_PIN) {
+                hidePinModal();
+                showAdminScreen();
+            } else {
+                alert('PIN incorreto! Tente novamente.');
+                pinInput.value = '';
+                pinInput.focus();
+            }
+        }
+
+        // Mostrar tela de administração
+        function showAdminScreen() {
+            mainScreen.style.display = 'none';
+            adminScreen.style.display = 'block';
+            renderMaterialsList();
+            resetForm();
+        }
+
+        // Mostrar tela principal
+        function showMainScreen() {
+            adminScreen.style.display = 'none';
+            mainScreen.style.display = 'block';
+            showCategoryView();
+        }
+
+        // Mostrar view de categorias
+        function showCategoryView() {
+            categoryView.style.display = 'block';
+            subcategoryView.style.display = 'none';
+            materialsView.style.display = 'none';
+        }
+
+        // Mostrar view de subcategorias
+        function showSubcategoryView() {
+            categoryView.style.display = 'none';
+            subcategoryView.style.display = 'block';
+            materialsView.style.display = 'none';
+        }
+
+        // Mostrar view de materiais
+        function showMaterialsView() {
+            categoryView.style.display = 'none';
+            subcategoryView.style.display = 'none';
+            materialsView.style.display = 'block';
+        }
+
+        // Popular selects de categoria e subcategoria
+        function populateCategorySelects() {
+            categorySelect.innerHTML = '<option value="">Selecione uma categoria</option>';
+            
+            Object.keys(categoriesData).forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = category;
+                categorySelect.appendChild(option);
+            });
+        }
+
+        // Atualizar select de subcategorias baseado na categoria selecionada
+        function updateSubcategorySelect(category) {
+            subcategorySelect.innerHTML = '<option value="">Selecione uma subcategoria</option>';
+            
+            if (category && categoriesData[category]) {
+                Object.keys(categoriesData[category]).forEach(subcategory => {
+                    const option = document.createElement('option');
+                    option.value = subcategory;
+                    option.textContent = subcategory;
+                    subcategorySelect.appendChild(option);
+                });
+            }
+        }
+
+        // Renderizar lista de materiais na tela de administração
+        function renderMaterialsList() {
+            materialsListContainer.innerHTML = '';
+            
+            if (materials.length === 0) {
+                materialsListContainer.innerHTML = '<p>Nenhum material cadastrado.</p>';
+                return;
+            }
+            
+            materials.forEach(material => {
+                const item = document.createElement('div');
+                item.className = 'material-item';
+                
+                item.innerHTML = `
+                    <div class="material-details">
+                        <div class="material-name">${material.nome}</div>
+                        <div class="material-category">${material.categoria} - ${material.subcategoria} - ${material.quantidade} unidades</div>
+                    </div>
+                    <div class="material-actions-admin">
+                        <button class="btn btn-edit" data-id="${material.id}">Editar</button>
+                        <button class="btn btn-delete" data-id="${material.id}">Excluir</button>
+                    </div>
+                `;
+                
+                materialsListContainer.appendChild(item);
+            });
+            
+            // Adicionar event listeners aos botões
+            document.querySelectorAll('.btn-edit').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = parseInt(this.getAttribute('data-id'));
+                    editMaterial(id);
+                });
+            });
+            
+            document.querySelectorAll('.btn-delete').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = parseInt(this.getAttribute('data-id'));
+                    deleteMaterial(id);
+                });
+            });
+        }
+
+        // Manipular envio do formulário
+        function handleMaterialSubmit(e) {
+            e.preventDefault();
+            
+            const id = materialIdInput.value ? parseInt(materialIdInput.value) : generateId();
+            const name = document.getElementById('material-name').value;
+            const category = document.getElementById('material-category').value;
+            const subcategory = document.getElementById('material-subcategory').value;
+            const quantity = parseInt(document.getElementById('material-quantity').value);
+            const image = document.getElementById('material-image').value;
+            const notes = document.getElementById('material-notes').value;
+            
+            if (editingMaterialId !== null) {
+                // Atualizar material existente
+                const materialIndex = materials.findIndex(m => m.id === editingMaterialId);
+                if (materialIndex !== -1) {
+                    materials[materialIndex] = {
+                        id: editingMaterialId,
+                        nome: name,
+                        categoria: category,
+                        subcategoria: subcategory,
+                        quantidade: quantity,
+                        imagem: image,
+                        observacoes: notes
+                    };
+                    
+                    showFeedback(`Material "${name}" atualizado com sucesso!`, 'success');
+                }
+            } else {
+                // Adicionar novo material
+                materials.push({
+                    id: id,
+                    nome: name,
+                    categoria: category,
+                    subcategoria: subcategory,
+                    quantidade: quantity,
+                    imagem: image,
+                    observacoes: notes
+                });
+                
+                showFeedback(`Material "${name}" cadastrado com sucesso!`, 'success');
+            }
+            
+            saveMaterials();
+            renderMaterialsList();
+            resetForm();
+        }
+
+        // Gerar ID para novo material
+        function generateId() {
+            return materials.length > 0 ? Math.max(...materials.map(m => m.id)) + 1 : 1;
+        }
+
+        // Editar material
+        function editMaterial(id) {
+            const material = materials.find(m => m.id === id);
+            if (material) {
+                document.getElementById('material-id').value = material.id;
+                document.getElementById('material-name').value = material.nome;
+                document.getElementById('material-category').value = material.categoria;
+                updateSubcategorySelect(material.categoria);
+                document.getElementById('material-subcategory').value = material.subcategoria;
+                document.getElementById('material-quantity').value = material.quantidade;
+                document.getElementById('material-image').value = material.imagem || '';
+                document.getElementById('material-notes').value = material.observacoes || '';
+                
+                editingMaterialId = id;
+                formTitle.textContent = 'Editar Material';
+                submitBtn.textContent = 'Atualizar Material';
+                cancelEditBtn.style.display = 'inline-block';
+                
+                // Rolar para o formulário
+                document.querySelector('.form-container').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        // Cancelar edição
+        function cancelEdit() {
+            resetForm();
+        }
+
+        // Resetar formulário
+        function resetForm() {
+            materialForm.reset();
+            materialIdInput.value = '';
+            editingMaterialId = null;
+            formTitle.textContent = 'Cadastrar Novo Material';
+            submitBtn.textContent = 'Cadastrar Material';
+            cancelEditBtn.style.display = 'none';
+            updateSubcategorySelect('');
+        }
+
+        // Excluir material
+        function deleteMaterial(id) {
+            const material = materials.find(m => m.id === id);
+            if (material && confirm(`Tem certeza que deseja excluir o material "${material.nome}"?`)) {
+                materials = materials.filter(m => m.id !== id);
+                saveMaterials();
+                renderMaterialsList();
+                showFeedback(`Material "${material.nome}" excluído com sucesso!`, 'success');
+            }
+        }
+    </script>
+</body>
+</html>
