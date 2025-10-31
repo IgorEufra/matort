@@ -1,18 +1,19 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FAF - Sistema de Materiais Ortopédicos (Cloud)</title>
-    
+
     <!-- Firebase (apenas Firestore) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    
+
     <!-- jsPDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-    
+
     <style>
         :root {
             --primary: #1a365d;
@@ -81,9 +82,17 @@
         }
 
         @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+
+            100% {
+                opacity: 1;
+            }
         }
 
         h1 {
@@ -109,7 +118,8 @@
             justify-content: center;
         }
 
-        .category-btn, .subcategory-btn {
+        .category-btn,
+        .subcategory-btn {
             padding: 12px 20px;
             background-color: white;
             border: 2px solid var(--accent);
@@ -121,12 +131,14 @@
             min-width: 150px;
         }
 
-        .category-btn:hover, .subcategory-btn:hover {
+        .category-btn:hover,
+        .subcategory-btn:hover {
             background-color: var(--accent);
             color: white;
         }
 
-        .category-btn.active, .subcategory-btn.active {
+        .category-btn.active,
+        .subcategory-btn.active {
             background-color: var(--accent);
             color: white;
         }
@@ -329,7 +341,9 @@
             font-weight: 600;
         }
 
-        input, select, textarea {
+        input,
+        select,
+        textarea {
             width: 100%;
             padding: 10px;
             border: 1px solid #cbd5e0;
@@ -442,11 +456,11 @@
             .totem-grid {
                 grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
             }
-            
+
             .material-actions-admin {
                 flex-direction: column;
             }
-            
+
             .category-navigation {
                 flex-direction: column;
             }
@@ -463,6 +477,7 @@
         }
     </style>
 </head>
+
 <body>
     <!-- Tela Principal -->
     <div id="main-screen">
@@ -479,7 +494,7 @@
 
         <div class="container">
             <div id="feedback-message" class="feedback" style="display: none;"></div>
-            
+
             <!-- Navegação por Categorias -->
             <div id="category-view">
                 <h2>Selecione uma Categoria</h2>
@@ -487,7 +502,7 @@
                     <!-- As categorias serão geradas dinamicamente aqui -->
                 </div>
             </div>
-            
+
             <!-- Navegação por Subcategorias -->
             <div id="subcategory-view" style="display: none;">
                 <button class="back-btn" id="back-to-categories">← Voltar para Categorias</button>
@@ -496,7 +511,7 @@
                     <!-- As subcategorias serão geradas dinamicamente aqui -->
                 </div>
             </div>
-            
+
             <!-- Lista de Materiais -->
             <div id="materials-view" style="display: none;">
                 <button class="back-btn" id="back-to-subcategories">← Voltar para Subcategorias</button>
@@ -546,43 +561,44 @@
                 <h3 id="form-title">Cadastrar Novo Material</h3>
                 <form id="material-form">
                     <input type="hidden" id="material-id">
-                    
+
                     <div class="form-group">
                         <label for="material-name">Nome do Material</label>
                         <input type="text" id="material-name" required>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="material-category">Categoria</label>
                         <select id="material-category" required>
                             <option value="">Selecione uma categoria</option>
                         </select>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="material-subcategory">Subcategoria</label>
                         <select id="material-subcategory" required>
                             <option value="">Selecione uma subcategoria</option>
                         </select>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="material-quantity">Quantidade Inicial</label>
                         <input type="number" id="material-quantity" min="0" required>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="material-image">Imagem (URL)</label>
                         <input type="text" id="material-image" placeholder="https://exemplo.com/imagem.jpg">
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="material-notes">Observações</label>
                         <textarea id="material-notes" rows="3"></textarea>
                     </div>
-                    
+
                     <button type="submit" class="btn btn-primary" id="submit-btn">Cadastrar Material</button>
-                    <button type="button" class="btn btn-secondary" id="cancel-edit" style="display: none;">Cancelar Edição</button>
+                    <button type="button" class="btn btn-secondary" id="cancel-edit" style="display: none;">Cancelar
+                        Edição</button>
                 </form>
             </div>
 
@@ -614,17 +630,25 @@
         // =============================================
         // CONFIGURAÇÃO FIREBASE - SUBSTITUA COM SEUS DADOS!
         // =============================================
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+        // TODO: Add SDKs for Firebase products that you want to use
+        // https://firebase.google.com/docs/web/setup#available-libraries
+
+        // Your web app's Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyDKDNK_PpL53jzKWVuzKjqiy_ovMOSWohM",
             authDomain: "mat-ort.firebaseapp.com",
             projectId: "mat-ort",
-            storageBucket: "mat-ort.firebasestorage.app", // Pode manter, mas não usaremos
+            storageBucket: "mat-ort.firebasestorage.app",
             messagingSenderId: "46791927003",
             appId: "1:46791927003:web:8341303577ba5b1cd218fe"
         };
 
-        // Inicializar Firebase (apenas Firestore)
+        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
+
+        // Inicializar Firebase (apenas Firestore)
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
@@ -633,11 +657,11 @@
             "Mobilidade": {
                 "Andadores": ["Andador Adulto", "Andador Infantil"],
                 "Bengalas": ["Bengala Adulto", "Bengala Infantil", "Bengala 4 Pontas"],
-                "Cadeiras de Rodas": ["Cadeira de Rodas Adulto até 90 kg", "Cadeira de Rodas Adulto 120kg", 
-                                     "Cadeira de Rodas Adulto Semi Obeso", "Cadeira de Rodas Infantil", 
-                                     "Cadeira de Rodas de Elevação Perna", "Cadeira de Rodas de Transferência Adulto"],
-                "Muletas": ["Muletas Axilar Adulto", "Muleta Axilar Infantil", 
-                           "Muletas Canadense Adulto", "Muleta Canadense Infantil"],
+                "Cadeiras de Rodas": ["Cadeira de Rodas Adulto até 90 kg", "Cadeira de Rodas Adulto 120kg",
+                    "Cadeira de Rodas Adulto Semi Obeso", "Cadeira de Rodas Infantil",
+                    "Cadeira de Rodas de Elevação Perna", "Cadeira de Rodas de Transferência Adulto"],
+                "Muletas": ["Muletas Axilar Adulto", "Muleta Axilar Infantil",
+                    "Muletas Canadense Adulto", "Muleta Canadense Infantil"],
                 "Cadeiras de Banho": ["Cadeira de Banho até 85 kg", "Cadeira de Banho até 100 kg"]
             },
             "Imobilização": {
@@ -658,12 +682,12 @@
                 "Camas": ["Cama Hospitalar"],
                 "Colchões": ["Colchão Caixa de Ovo", "Colchão Hospitalar", "Colchão Pneumático"],
                 "Respiratórios": ["Cilindro de Oxigênio Hospitalar", "Inalador", "Respiratório"],
-                "Equipamentos Diversos": ["Aspirador Cirúrgico", "Bomba a Vácuo Aspiradora", "Bomba de Pressão", 
-                          "Guincho Hospitalar", "Suporte para Soro", "Termômetro Sensor", "Papagaio"]
+                "Equipamentos Diversos": ["Aspirador Cirúrgico", "Bomba a Vácuo Aspiradora", "Bomba de Pressão",
+                    "Guincho Hospitalar", "Suporte para Soro", "Termômetro Sensor", "Papagaio"]
             },
             "Insumos": {
-                "Fraldas": ["Fralda Descartável Adulto Tamanho G", "Fralda Descartável Adulto Tamanho M", 
-                           "Fralda Descartável Adulto Tamanho XG"],
+                "Fraldas": ["Fralda Descartável Adulto Tamanho G", "Fralda Descartável Adulto Tamanho M",
+                    "Fralda Descartável Adulto Tamanho XG"],
                 "Sondas": ["Sonda Uretral"],
                 "Outros Insumos": ["Ap. Pressão Digital", "Calha para Pé", "Cesta Básica", "Comadre"]
             }
@@ -726,7 +750,7 @@
         // =============================================
 
         // Inicialização
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             console.log("Iniciando sistema com Firebase Firestore...");
             initializeFirebase();
             setupEventListeners();
@@ -736,7 +760,7 @@
         // Inicializar Firebase e escutar mudanças
         function initializeFirebase() {
             showFeedback("Conectando com a nuvem...", "loading");
-            
+
             // Escutar mudanças em tempo real
             db.collection("materials").onSnapshot((snapshot) => {
                 materials = [];
@@ -746,23 +770,23 @@
                         ...doc.data()
                     });
                 });
-                
+
                 updateSyncStatus(true);
                 showFeedback("Dados sincronizados com sucesso!", "success");
-                
+
                 // Atualizar interface
                 renderCategories();
                 if (currentCategory && currentSubcategory) {
                     renderMaterialsBySubcategory(currentCategory, currentSubcategory);
                 }
-                
+
                 console.log("Dados carregados do Firebase:", materials.length, "materiais");
-                
+
             }, (error) => {
                 console.error("Erro ao conectar com Firebase:", error);
                 updateSyncStatus(false);
                 showFeedback("Erro de conexão. Usando modo offline.", "error");
-                
+
                 // Tentar carregar do localStorage como fallback
                 loadFromLocalStorage();
             });
@@ -771,7 +795,7 @@
         // Atualizar status de sincronização
         function updateSyncStatus(online) {
             isOnline = online;
-            
+
             if (online) {
                 statusDot.className = "status-dot status-online";
                 statusText.textContent = "Sincronizado";
@@ -865,26 +889,26 @@
         function exportToPDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            
+
             // Título
             doc.setFontSize(20);
             doc.setTextColor(40, 40, 40);
             doc.text("RELATÓRIO FAF - MATERIAIS ORTOPÉDICOS", 105, 15, { align: 'center' });
-            
+
             // Data
             doc.setFontSize(12);
             doc.setTextColor(100, 100, 100);
             doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`, 105, 25, { align: 'center' });
-            
+
             // Resumo
             let yPosition = 40;
             doc.setFontSize(14);
             doc.setTextColor(0, 0, 0);
             doc.text("RESUMO DO ESTOQUE", 20, yPosition);
-            
+
             yPosition += 10;
             doc.setFontSize(10);
-            
+
             // Agrupar por categoria
             const categorias = {};
             materials.forEach(material => {
@@ -893,14 +917,14 @@
                 }
                 categorias[material.categoria].push(material);
             });
-            
+
             // Adicionar tabela de resumo
             const tableData = [];
             Object.keys(categorias).forEach(categoria => {
                 const total = categorias[categoria].reduce((sum, item) => sum + item.quantidade, 0);
                 tableData.push([categoria, categorias[categoria].length, total]);
             });
-            
+
             doc.autoTable({
                 startY: yPosition,
                 head: [['Categoria', 'Itens', 'Total Unidades']],
@@ -909,28 +933,28 @@
                 headStyles: { fillColor: [26, 54, 93] },
                 margin: { top: 10 }
             });
-            
+
             yPosition = doc.lastAutoTable.finalY + 15;
-            
+
             // Detalhamento por categoria
             Object.keys(categorias).forEach(categoria => {
                 if (yPosition > 250) {
                     doc.addPage();
                     yPosition = 20;
                 }
-                
+
                 doc.setFontSize(12);
                 doc.setTextColor(26, 54, 93);
                 doc.text(`CATEGORIA: ${categoria}`, 20, yPosition);
                 yPosition += 8;
-                
+
                 const categoriaData = categorias[categoria].map(item => [
                     item.nome,
                     item.subcategoria,
                     item.quantidade.toString(),
                     item.quantidade === 0 ? 'ESGOTADO' : 'DISPONÍVEL'
                 ]);
-                
+
                 doc.autoTable({
                     startY: yPosition,
                     head: [['Material', 'Subcategoria', 'Quantidade', 'Status']],
@@ -945,10 +969,10 @@
                         3: { cellWidth: 30 }
                     }
                 });
-                
+
                 yPosition = doc.lastAutoTable.finalY + 10;
             });
-            
+
             // Salvar PDF
             doc.save(`relatorio-faf-${new Date().toISOString().split('T')[0]}.pdf`);
             showFeedback("PDF gerado com sucesso! Baixe e compartilhe manualmente.", "success");
@@ -957,7 +981,7 @@
         // Compartilhar resumo via WhatsApp
         function shareSummaryViaWhatsApp() {
             let texto = "📋 *RELATÓRIO FAF - ESTOQUE DE MATERIAIS ORTOPÉDICOS*%0A%0A";
-            
+
             // Resumo por categoria
             const categorias = {};
             materials.forEach(material => {
@@ -966,19 +990,19 @@
                 }
                 categorias[material.categoria].push(material);
             });
-            
+
             Object.keys(categorias).forEach(categoria => {
                 const total = categorias[categoria].reduce((sum, item) => sum + item.quantidade, 0);
                 texto += `🏷️ *${categoria}:* ${categorias[categoria].length} itens, ${total} unidades%0A`;
             });
-            
+
             texto += `%0A📅 *Data:* ${new Date().toLocaleDateString('pt-BR')}`;
             texto += `%0A⏰ *Hora:* ${new Date().toLocaleTimeString('pt-BR')}`;
             texto += `%0A%0A💡 *Itens em falta:* ${materials.filter(m => m.quantidade === 0).length}`;
             texto += `%0A📦 *Total de itens:* ${materials.length}`;
             texto += `%0A%0A_Sistema FAF - Sincronizado em Nuvem_`;
             texto += `%0A%0A💾 *PDF disponível no sistema para download detalhado*`;
-            
+
             const url = `https://wa.me/?text=${texto}`;
             window.open(url, '_blank');
             showFeedback("WhatsApp aberto com o resumo!", "success");
@@ -987,7 +1011,7 @@
         // Copiar resumo para área de transferência
         function copySummaryToClipboard() {
             let texto = "RELATÓRIO FAF - ESTOQUE\n\n";
-            
+
             const categorias = {};
             materials.forEach(material => {
                 if (!categorias[material.categoria]) {
@@ -995,7 +1019,7 @@
                 }
                 categorias[material.categoria].push(material);
             });
-            
+
             Object.keys(categorias).forEach(categoria => {
                 texto += `${categoria}:\n`;
                 categorias[categoria].forEach(material => {
@@ -1004,13 +1028,13 @@
                 });
                 texto += '\n';
             });
-            
+
             texto += `Data: ${new Date().toLocaleDateString('pt-BR')}\n`;
             texto += `Hora: ${new Date().toLocaleTimeString('pt-BR')}\n`;
             texto += `Total de itens: ${materials.length}\n`;
             texto += `Itens em falta: ${materials.filter(m => m.quantidade === 0).length}\n`;
             texto += `Sistema FAF - Sincronizado em Nuvem`;
-            
+
             navigator.clipboard.writeText(texto).then(() => {
                 showFeedback("Resumo copiado para a área de transferência!", "success");
             }).catch(() => {
@@ -1037,22 +1061,22 @@
             cancelEditBtn.addEventListener('click', cancelEdit);
             backToCategoriesBtn.addEventListener('click', showCategoryView);
             backToSubcategoriesBtn.addEventListener('click', showSubcategoryView);
-            
+
             // Event listeners para exportação
             exportPdfBtn.addEventListener('click', exportToPDF);
             shareWhatsappBtn.addEventListener('click', shareSummaryViaWhatsApp);
             copySummaryBtn.addEventListener('click', copySummaryToClipboard);
-            
+
             // Atalho de teclado para acesso administrativo (Ctrl+Alt+F)
-            document.addEventListener('keydown', function(e) {
+            document.addEventListener('keydown', function (e) {
                 if (e.ctrlKey && e.altKey && e.key === 'F') {
                     e.preventDefault();
                     showPinModal();
                 }
             });
-            
+
             // Atualizar subcategorias quando a categoria for alterada
-            categorySelect.addEventListener('change', function() {
+            categorySelect.addEventListener('change', function () {
                 updateSubcategorySelect(this.value);
             });
         }
@@ -1064,15 +1088,15 @@
         // Renderizar categorias na tela principal
         function renderCategories() {
             categoriesContainer.innerHTML = '';
-            
+
             Object.keys(categoriesData).forEach(category => {
                 const btn = document.createElement('button');
                 btn.className = 'category-btn';
                 btn.textContent = category;
-                btn.addEventListener('click', function() {
+                btn.addEventListener('click', function () {
                     selectCategory(category);
                 });
-                
+
                 categoriesContainer.appendChild(btn);
             });
         }
@@ -1088,16 +1112,16 @@
         function renderSubcategories(category) {
             subcategoriesContainer.innerHTML = '';
             subcategoryTitle.textContent = `Categoria: ${category}`;
-            
+
             if (categoriesData[category]) {
                 Object.keys(categoriesData[category]).forEach(subcategory => {
                     const btn = document.createElement('button');
                     btn.className = 'subcategory-btn';
                     btn.textContent = subcategory;
-                    btn.addEventListener('click', function() {
+                    btn.addEventListener('click', function () {
                         selectSubcategory(subcategory);
                     });
-                    
+
                     subcategoriesContainer.appendChild(btn);
                 });
             }
@@ -1114,24 +1138,24 @@
         function renderMaterialsBySubcategory(category, subcategory) {
             materialsGrid.innerHTML = '';
             materialsTitle.textContent = `${category} - ${subcategory}`;
-            
-            const filteredMaterials = materials.filter(m => 
+
+            const filteredMaterials = materials.filter(m =>
                 m.categoria === category && m.subcategoria === subcategory
             );
-            
+
             if (filteredMaterials.length === 0) {
                 materialsGrid.innerHTML = '<p>Nenhum material encontrado nesta subcategoria.</p>';
                 return;
             }
-            
+
             filteredMaterials.forEach(material => {
                 const card = document.createElement('div');
                 card.className = 'material-card';
-                
-                const imageContent = material.imagem 
+
+                const imageContent = material.imagem
                     ? `<img src="${material.imagem}" alt="${material.nome}" class="material-image">`
                     : `<div class="material-image">🩺</div>`;
-                
+
                 card.innerHTML = `
                     ${imageContent}
                     <div class="material-info">
@@ -1146,20 +1170,20 @@
                         </div>
                     </div>
                 `;
-                
+
                 materialsGrid.appendChild(card);
             });
-            
+
             // Adicionar event listeners aos botões
             document.querySelectorAll('.btn-add').forEach(btn => {
-                btn.addEventListener('click', function() {
+                btn.addEventListener('click', function () {
                     const id = this.getAttribute('data-id');
                     updateQuantity(id, 1);
                 });
             });
-            
+
             document.querySelectorAll('.btn-remove').forEach(btn => {
-                btn.addEventListener('click', function() {
+                btn.addEventListener('click', function () {
                     const id = this.getAttribute('data-id');
                     updateQuantity(id, -1);
                 });
@@ -1171,28 +1195,28 @@
             const materialIndex = materials.findIndex(m => m.id === id);
             if (materialIndex !== -1) {
                 const newQuantity = materials[materialIndex].quantidade + change;
-                
+
                 // Garantir que a quantidade não seja negativa
                 if (newQuantity < 0) {
                     showFeedback("Quantidade não pode ser negativa!", "error");
                     return;
                 }
-                
+
                 materials[materialIndex].quantidade = newQuantity;
-                
+
                 try {
                     // Atualizar no Firebase
                     await db.collection("materials").doc(id).update({
                         quantidade: newQuantity,
                         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
-                    
+
                     // Atualizar localmente
                     saveToLocalStorage();
                     renderMaterialsBySubcategory(currentCategory, currentSubcategory);
-                    
+
                     showFeedback(`Quantidade de ${materials[materialIndex].nome} atualizada!`, "success");
-                    
+
                     if (newQuantity === 0) {
                         showFeedback(`ATENÇÃO: ${materials[materialIndex].nome} está sem estoque!`, "error");
                     }
@@ -1208,7 +1232,7 @@
             feedbackMessage.textContent = message;
             feedbackMessage.className = `feedback ${type}`;
             feedbackMessage.style.display = 'block';
-            
+
             setTimeout(() => {
                 feedbackMessage.style.display = 'none';
             }, 4000);
@@ -1277,7 +1301,7 @@
         // Popular selects de categoria e subcategoria
         function populateCategorySelects() {
             categorySelect.innerHTML = '<option value="">Selecione uma categoria</option>';
-            
+
             Object.keys(categoriesData).forEach(category => {
                 const option = document.createElement('option');
                 option.value = category;
@@ -1289,7 +1313,7 @@
         // Atualizar select de subcategorias baseado na categoria selecionada
         function updateSubcategorySelect(category) {
             subcategorySelect.innerHTML = '<option value="">Selecione uma subcategoria</option>';
-            
+
             if (category && categoriesData[category]) {
                 Object.keys(categoriesData[category]).forEach(subcategory => {
                     const option = document.createElement('option');
@@ -1303,16 +1327,16 @@
         // Renderizar lista de materiais na tela de administração
         function renderMaterialsList() {
             materialsListContainer.innerHTML = '';
-            
+
             if (materials.length === 0) {
                 materialsListContainer.innerHTML = '<p>Nenhum material cadastrado.</p>';
                 return;
             }
-            
+
             materials.forEach(material => {
                 const item = document.createElement('div');
                 item.className = 'material-item';
-                
+
                 item.innerHTML = `
                     <div class="material-details">
                         <div class="material-name">${material.nome}</div>
@@ -1323,20 +1347,20 @@
                         <button class="btn btn-delete" data-id="${material.id}">Excluir</button>
                     </div>
                 `;
-                
+
                 materialsListContainer.appendChild(item);
             });
-            
+
             // Adicionar event listeners aos botões
             document.querySelectorAll('.btn-edit').forEach(btn => {
-                btn.addEventListener('click', function() {
+                btn.addEventListener('click', function () {
                     const id = this.getAttribute('data-id');
                     editMaterial(id);
                 });
             });
-            
+
             document.querySelectorAll('.btn-delete').forEach(btn => {
-                btn.addEventListener('click', function() {
+                btn.addEventListener('click', function () {
                     const id = this.getAttribute('data-id');
                     deleteMaterial(id);
                 });
@@ -1346,7 +1370,7 @@
         // Manipular envio do formulário
         async function handleMaterialSubmit(e) {
             e.preventDefault();
-            
+
             const id = materialIdInput.value || `local-${Date.now()}`;
             const name = document.getElementById('material-name').value;
             const category = document.getElementById('material-category').value;
@@ -1354,7 +1378,7 @@
             const quantity = parseInt(document.getElementById('material-quantity').value);
             const image = document.getElementById('material-image').value;
             const notes = document.getElementById('material-notes').value;
-            
+
             const materialData = {
                 id: id,
                 nome: name,
@@ -1364,7 +1388,7 @@
                 imagem: image,
                 observacoes: notes
             };
-            
+
             try {
                 if (editingMaterialId !== null) {
                     // Atualizar material existente
@@ -1376,10 +1400,10 @@
                     const newId = await saveMaterial(materialData);
                     showFeedback(`Material "${name}" cadastrado com sucesso!`, "success");
                 }
-                
+
                 // Os dados serão atualizados automaticamente pelo listener do Firebase
                 resetForm();
-                
+
             } catch (error) {
                 console.error("Erro ao salvar material:", error);
                 showFeedback("Erro ao salvar material. Verifique a conexão.", "error");
@@ -1398,12 +1422,12 @@
                 document.getElementById('material-quantity').value = material.quantidade;
                 document.getElementById('material-image').value = material.imagem || '';
                 document.getElementById('material-notes').value = material.observacoes || '';
-                
+
                 editingMaterialId = id;
                 formTitle.textContent = 'Editar Material';
                 submitBtn.textContent = 'Atualizar Material';
                 cancelEditBtn.style.display = 'inline-block';
-                
+
                 document.querySelector('.form-container').scrollIntoView({ behavior: 'smooth' });
             }
         }
@@ -1439,4 +1463,5 @@
         }
     </script>
 </body>
+
 </html>
