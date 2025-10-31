@@ -3,7 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FAF - Sistema de Materiais Ortopédicos</title>
+    <title>FAF - Sistema de Materiais Ortopédicos (Cloud)</title>
+    
+    <!-- Firebase (apenas Firestore) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <!-- jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    
     <style>
         :root {
             --primary: #1a365d;
@@ -13,6 +22,8 @@
             --success: #38a169;
             --warning: #e53e3e;
             --text: #2d3748;
+            --online: #38a169;
+            --offline: #e53e3e;
         }
 
         * {
@@ -41,6 +52,38 @@
             text-align: center;
             border-radius: 0 0 10px 10px;
             margin-bottom: 20px;
+            position: relative;
+        }
+
+        .sync-status {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-online {
+            background-color: var(--online);
+        }
+
+        .status-offline {
+            background-color: var(--offline);
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
         }
 
         h1 {
@@ -389,6 +432,11 @@
             color: #742a2a;
         }
 
+        .loading {
+            background-color: #bee3f8;
+            color: #2a4365;
+        }
+
         /* Responsividade */
         @media (max-width: 768px) {
             .totem-grid {
@@ -406,6 +454,12 @@
             .export-buttons {
                 flex-direction: column;
             }
+
+            .sync-status {
+                position: static;
+                justify-content: center;
+                margin-top: 10px;
+            }
         }
     </style>
 </head>
@@ -415,7 +469,11 @@
         <header>
             <div class="container">
                 <h1>FAF - Sistema de Materiais Ortopédicos</h1>
-                <p class="subtitle">Controle de Estoque - Balanço de Materiais</p>
+                <p class="subtitle">Controle de Estoque - Sincronizado em Nuvem</p>
+                <div class="sync-status">
+                    <div class="status-dot status-offline" id="status-dot"></div>
+                    <span id="status-text">Conectando...</span>
+                </div>
             </div>
         </header>
 
@@ -458,6 +516,10 @@
             <div class="container">
                 <h1>FAF - Área Administrativa</h1>
                 <p class="subtitle">Cadastro e Gerenciamento de Materiais</p>
+                <div class="sync-status">
+                    <div class="status-dot status-offline" id="admin-status-dot"></div>
+                    <span id="admin-status-text">Conectando...</span>
+                </div>
             </div>
         </header>
 
@@ -473,7 +535,7 @@
                     📄 Exportar PDF
                 </button>
                 <button class="btn btn-whatsapp" id="share-whatsapp">
-                    📱 Compartilhar WhatsApp
+                    📱 Compartilhar Resumo
                 </button>
                 <button class="btn btn-copy" id="copy-summary">
                     📋 Copiar Resumo
@@ -548,11 +610,24 @@
         </div>
     </div>
 
-    <!-- Incluir jsPDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-
     <script>
+        // =============================================
+        // CONFIGURAÇÃO FIREBASE - SUBSTITUA COM SEUS DADOS!
+        // =============================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyDKDNK_PpL53jzKWVuzKjqiy_ovMOSWohM",
+            authDomain: "mat-ort.firebaseapp.com",
+            projectId: "mat-ort",
+            storageBucket: "mat-ort.firebasestorage.app", // Pode manter, mas não usaremos
+            messagingSenderId: "46791927003",
+            appId: "1:46791927003:web:8341303577ba5b1cd218fe"
+        };
+
+        // Inicializar Firebase (apenas Firestore)
+        const app = initializeApp(firebaseConfig);
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
         // Dados de categorias e subcategorias
         const categoriesData = {
             "Mobilidade": {
@@ -594,134 +669,6 @@
             }
         };
 
-        // Dados iniciais ATUALIZADOS e CORRIGIDOS
-        const initialMaterials = [
-            // Mobilidade - Andadores
-            { id: 1, nome: "Andador Adulto", categoria: "Mobilidade", subcategoria: "Andadores", quantidade: 7, imagem: "", observacoes: "" },
-            { id: 2, nome: "Andador Infantil", categoria: "Mobilidade", subcategoria: "Andadores", quantidade: 3, imagem: "", observacoes: "" },
-            
-            // Mobilidade - Bengalas
-            { id: 3, nome: "Bengala Adulto", categoria: "Mobilidade", subcategoria: "Bengalas", quantidade: 1, imagem: "", observacoes: "" },
-            { id: 4, nome: "Bengala Infantil", categoria: "Mobilidade", subcategoria: "Bengalas", quantidade: 1, imagem: "", observacoes: "" },
-            { id: 5, nome: "Bengala 4 Pontas", categoria: "Mobilidade", subcategoria: "Bengalas", quantidade: 2, imagem: "", observacoes: "" },
-            
-            // Mobilidade - Cadeiras de Rodas
-            { id: 6, nome: "Cadeira de Rodas Adulto até 90 kg", categoria: "Mobilidade", subcategoria: "Cadeiras de Rodas", quantidade: 8, imagem: "", observacoes: "" },
-            { id: 7, nome: "Cadeira de Rodas Adulto 120kg", categoria: "Mobilidade", subcategoria: "Cadeiras de Rodas", quantidade: 1, imagem: "", observacoes: "" },
-            { id: 8, nome: "Cadeira de Rodas Adulto Semi Obeso", categoria: "Mobilidade", subcategoria: "Cadeiras de Rodas", quantidade: 0, imagem: "", observacoes: "" },
-            { id: 9, nome: "Cadeira de Rodas Infantil", categoria: "Mobilidade", subcategoria: "Cadeiras de Rodas", quantidade: 1, imagem: "", observacoes: "" },
-            { id: 10, nome: "Cadeira de Rodas de Elevação Perna", categoria: "Mobilidade", subcategoria: "Cadeiras de Rodas", quantidade: 0, imagem: "", observacoes: "" },
-            { id: 11, nome: "Cadeira de Rodas de Transferência Adulto", categoria: "Mobilidade", subcategoria: "Cadeiras de Rodas", quantidade: 1, imagem: "", observacoes: "" },
-            
-            // Mobilidade - Muletas
-            { id: 12, nome: "Muletas Axilar Adulto", categoria: "Mobilidade", subcategoria: "Muletas", quantidade: 10, imagem: "", observacoes: "" },
-            { id: 13, nome: "Muleta Axilar Infantil", categoria: "Mobilidade", subcategoria: "Muletas", quantidade: 2, imagem: "", observacoes: "" },
-            { id: 14, nome: "Muletas Canadense Adulto", categoria: "Mobilidade", subcategoria: "Muletas", quantidade: 8, imagem: "", observacoes: "" },
-            { id: 15, nome: "Muleta Canadense Infantil", categoria: "Mobilidade", subcategoria: "Muletas", quantidade: 1, imagem: "", observacoes: "" },
-            
-            // Mobilidade - Cadeiras de Banho
-            { id: 16, nome: "Cadeira de Banho até 85 kg", categoria: "Mobilidade", subcategoria: "Cadeiras de Banho", quantidade: 4, imagem: "", observacoes: "" },
-            { id: 17, nome: "Cadeira de Banho até 100 kg", categoria: "Mobilidade", subcategoria: "Cadeiras de Banho", quantidade: 1, imagem: "", observacoes: "" },
-            
-            // Imobilização - Colares Cervicais
-            { id: 18, nome: "Colar Cervical para TQT EVA / Polietileno", categoria: "Imobilização", subcategoria: "Colares Cervicais", quantidade: 1, imagem: "", observacoes: "" },
-            { id: 19, nome: "Colar Cervical EVA/Polietileno", categoria: "Imobilização", subcategoria: "Colares Cervicais", quantidade: 1, imagem: "", observacoes: "" },
-            
-            // Imobilização - Joelhos
-            { id: 20, nome: "Joelheira", categoria: "Imobilização", subcategoria: "Joelhos", quantidade: 2, imagem: "", observacoes: "" },
-            { id: 21, nome: "Joelheira Articulada - P", categoria: "Imobilização", subcategoria: "Joelhos", quantidade: 3, imagem: "", observacoes: "" },
-            { id: 22, nome: "Joelheira Articulada - M", categoria: "Imobilização", subcategoria: "Joelhos", quantidade: 2, imagem: "", observacoes: "" },
-            { id: 23, nome: "Joelheira Articulada - G", categoria: "Imobilização", subcategoria: "Joelhos", quantidade: 1, imagem: "", observacoes: "" },
-            { id: 24, nome: "Imobilizador de Joelho - 50 cm", categoria: "Imobilização", subcategoria: "Joelhos", quantidade: 2, imagem: "", observacoes: "" },
-            { id: 25, nome: "Imobilizador de Joelho - 60 cm", categoria: "Imobilização", subcategoria: "Joelhos", quantidade: 4, imagem: "", observacoes: "" },
-            { id: 26, nome: "Imobilizador de Joelho - 70 cm", categoria: "Imobilização", subcategoria: "Joelhos", quantidade: 1, imagem: "", observacoes: "" },
-            
-            // Imobilização - Tornozeleiras
-            { id: 27, nome: "Estabilizador de Tornozelo - P", categoria: "Imobilização", subcategoria: "Tornozeleiras", quantidade: 3, imagem: "", observacoes: "" },
-            { id: 28, nome: "Estabilizador de Tornozelo - M", categoria: "Imobilização", subcategoria: "Tornozeleiras", quantidade: 3, imagem: "", observacoes: "" },
-            { id: 29, nome: "Estabilizador de Tornozelo - G", categoria: "Imobilização", subcategoria: "Tornozeleiras", quantidade: 2, imagem: "", observacoes: "" },
-            
-            // Imobilização - Punhos
-            { id: 30, nome: "Tala para Punho Direito - P", categoria: "Imobilização", subcategoria: "Punhos", quantidade: 2, imagem: "", observacoes: "" },
-            { id: 31, nome: "Tala para Punho Direito - M", categoria: "Imobilização", subcategoria: "Punhos", quantidade: 1, imagem: "", observacoes: "" },
-            { id: 32, nome: "Tala para Punho Direito - G", categoria: "Imobilização", subcategoria: "Punhos", quantidade: 1, imagem: "", observacoes: "" },
-            { id: 33, nome: "Tala para Punho Esquerdo - M", categoria: "Imobilização", subcategoria: "Punhos", quantidade: 3, imagem: "", observacoes: "" },
-            { id: 34, nome: "Tala para Punho Esquerdo - G", categoria: "Imobilização", subcategoria: "Punhos", quantidade: 3, imagem: "", observacoes: "" },
-            { id: 35, nome: "Tala para Punho Esquerdo - GG", categoria: "Imobilização", subcategoria: "Punhos", quantidade: 2, imagem: "", observacoes: "" },
-            { id: 36, nome: "Tala para Punho e Polegar - M Direito", categoria: "Imobilização", subcategoria: "Punhos", quantidade: 1, imagem: "", observacoes: "" },
-            
-            // Imobilização - Coletes
-            { id: 37, nome: "Colete Jewett", categoria: "Imobilização", subcategoria: "Coletes", quantidade: 1, imagem: "", observacoes: "" },
-            { id: 38, nome: "Colete Putti Baixo - P", categoria: "Imobilização", subcategoria: "Coletes", quantidade: 3, imagem: "", observacoes: "" },
-            { id: 39, nome: "Colete Putti Baixo - M", categoria: "Imobilização", subcategoria: "Coletes", quantidade: 2, imagem: "", observacoes: "" },
-            { id: 40, nome: "Colete Putti Baixo - G", categoria: "Imobilização", subcategoria: "Coletes", quantidade: 2, imagem: "", observacoes: "" },
-            { id: 41, nome: "Colete Putti Alto - P", categoria: "Imobilização", subcategoria: "Coletes", quantidade: 1, imagem: "", observacoes: "" },
-            { id: 42, nome: "Colete Putti Alto - M", categoria: "Imobilização", subcategoria: "Coletes", quantidade: 2, imagem: "", observacoes: "" },
-            { id: 43, nome: "Colete Putti Alto - G", categoria: "Imobilização", subcategoria: "Coletes", quantidade: 3, imagem: "", observacoes: "" },
-            { id: 44, nome: "Colete Putti Alto - GG", categoria: "Imobilização", subcategoria: "Coletes", quantidade: 1, imagem: "", observacoes: "" },
-            
-            // Imobilização - Outros
-            { id: 45, nome: "Suporte de Ombro", categoria: "Imobilização", subcategoria: "Outros Imobilização", quantidade: 1, imagem: "", observacoes: "" },
-            
-            // Suporte e Conforto - Calçados
-            { id: 46, nome: "Sandália Baruk Plana - M", categoria: "Suporte e Conforto", subcategoria: "Calçados", quantidade: 4, imagem: "", observacoes: "" },
-            { id: 47, nome: "Sandália Baruk Retropé - M", categoria: "Suporte e Conforto", subcategoria: "Calçados", quantidade: 1, imagem: "", observacoes: "" },
-            { id: 48, nome: "Sandália Baruk Retropé - P", categoria: "Suporte e Conforto", subcategoria: "Calçados", quantidade: 1, imagem: "", observacoes: "" },
-            { id: 49, nome: "Robofoot - PP", categoria: "Suporte e Conforto", subcategoria: "Calçados", quantidade: 1, imagem: "", observacoes: "" },
-            { id: 50, nome: "Robofoot - P", categoria: "Suporte e Conforto", subcategoria: "Calçados", quantidade: 6, imagem: "", observacoes: "" },
-            { id: 51, nome: "Robofoot - M", categoria: "Suporte e Conforto", subcategoria: "Calçados", quantidade: 7, imagem: "", observacoes: "" },
-            { id: 52, nome: "Robofoot - G", categoria: "Suporte e Conforto", subcategoria: "Calçados", quantidade: 6, imagem: "", observacoes: "" },
-            
-            // Suporte e Conforto - Cintas
-            { id: 53, nome: "Cinta Abdominal 100 x 20cm", categoria: "Suporte e Conforto", subcategoria: "Cintas", quantidade: 1, imagem: "", observacoes: "" },
-            
-            // Suporte e Conforto - Almofadas
-            { id: 54, nome: "Almofada para Conforto da Próstata", categoria: "Suporte e Conforto", subcategoria: "Almofadas", quantidade: 1, imagem: "", observacoes: "" },
-            { id: 55, nome: "Cunha Almofadada", categoria: "Suporte e Conforto", subcategoria: "Almofadas", quantidade: 1, imagem: "", observacoes: "" },
-            
-            // Suporte e Conforto - Tipoias
-            { id: 56, nome: "Tipoia M Bilateral", categoria: "Suporte e Conforto", subcategoria: "Tipoias", quantidade: 14, imagem: "", observacoes: "" },
-            { id: 57, nome: "Tipoia G Bilateral", categoria: "Suporte e Conforto", subcategoria: "Tipoias", quantidade: 4, imagem: "", observacoes: "" },
-            { id: 58, nome: "Tipoia P Bilateral", categoria: "Suporte e Conforto", subcategoria: "Tipoias", quantidade: 4, imagem: "", observacoes: "" },
-            { id: 59, nome: "Tipoia Infantil", categoria: "Suporte e Conforto", subcategoria: "Tipoias", quantidade: 1, imagem: "", observacoes: "" },
-            
-            // Equipamentos Hospitalares - Camas
-            { id: 60, nome: "Cama Hospitalar", categoria: "Equipamentos Hospitalares", subcategoria: "Camas", quantidade: 5, imagem: "", observacoes: "" },
-            
-            // Equipamentos Hospitalares - Colchões
-            { id: 61, nome: "Colchão Caixa de Ovo", categoria: "Equipamentos Hospitalares", subcategoria: "Colchões", quantidade: 2, imagem: "", observacoes: "" },
-            { id: 62, nome: "Colchão Hospitalar", categoria: "Equipamentos Hospitalares", subcategoria: "Colchões", quantidade: 2, imagem: "", observacoes: "" },
-            { id: 63, nome: "Colchão Pneumático", categoria: "Equipamentos Hospitalares", subcategoria: "Colchões", quantidade: 1, imagem: "", observacoes: "" },
-            
-            // Equipamentos Hospitalares - Respiratórios
-            { id: 64, nome: "Cilindro de Oxigênio Hospitalar", categoria: "Equipamentos Hospitalares", subcategoria: "Respiratórios", quantidade: 1, imagem: "", observacoes: "" },
-            { id: 65, nome: "Inalador", categoria: "Equipamentos Hospitalares", subcategoria: "Respiratórios", quantidade: 4, imagem: "", observacoes: "" },
-            { id: 66, nome: "Respiratório", categoria: "Equipamentos Hospitalares", subcategoria: "Respiratórios", quantidade: 0, imagem: "", observacoes: "" },
-            
-            // Equipamentos Hospitalares - Equipamentos Diversos
-            { id: 67, nome: "Aspirador Cirúrgico", categoria: "Equipamentos Hospitalares", subcategoria: "Equipamentos Diversos", quantidade: 4, imagem: "", observacoes: "" },
-            { id: 68, nome: "Bomba a Vácuo Aspiradora", categoria: "Equipamentos Hospitalares", subcategoria: "Equipamentos Diversos", quantidade: 1, imagem: "", observacoes: "" },
-            { id: 69, nome: "Bomba de Pressão", categoria: "Equipamentos Hospitalares", subcategoria: "Equipamentos Diversos", quantidade: 1, imagem: "", observacoes: "" },
-            { id: 70, nome: "Guincho Hospitalar", categoria: "Equipamentos Hospitalares", subcategoria: "Equipamentos Diversos", quantidade: 1, imagem: "", observacoes: "" },
-            { id: 71, nome: "Suporte para Soro", categoria: "Equipamentos Hospitalares", subcategoria: "Equipamentos Diversos", quantidade: 1, imagem: "", observacoes: "" },
-            { id: 72, nome: "Termômetro Sensor", categoria: "Equipamentos Hospitalares", subcategoria: "Equipamentos Diversos", quantidade: 3, imagem: "", observacoes: "" },
-            { id: 73, nome: "Papagaio", categoria: "Equipamentos Hospitalares", subcategoria: "Equipamentos Diversos", quantidade: 1, imagem: "", observacoes: "" },
-            
-            // Insumos - Fraldas
-            { id: 74, nome: "Fralda Descartável Adulto Tamanho G", categoria: "Insumos", subcategoria: "Fraldas", quantidade: 0, imagem: "", observacoes: "" },
-            { id: 75, nome: "Fralda Descartável Adulto Tamanho M", categoria: "Insumos", subcategoria: "Fraldas", quantidade: 1, imagem: "", observacoes: "" },
-            { id: 76, nome: "Fralda Descartável Adulto Tamanho XG", categoria: "Insumos", subcategoria: "Fraldas", quantidade: 3, imagem: "", observacoes: "" },
-            
-            // Insumos - Sondas
-            { id: 77, nome: "Sonda Uretral", categoria: "Insumos", subcategoria: "Sondas", quantidade: 2, imagem: "", observacoes: "" },
-            
-            // Insumos - Outros
-            { id: 78, nome: "Ap. Pressão Digital", categoria: "Insumos", subcategoria: "Outros Insumos", quantidade: 3, imagem: "", observacoes: "" },
-            { id: 79, nome: "Calha para Pé", categoria: "Insumos", subcategoria: "Outros Insumos", quantidade: 1, imagem: "", observacoes: "" },
-            { id: 80, nome: "Cesta Básica", categoria: "Insumos", subcategoria: "Outros Insumos", quantidade: 2, imagem: "", observacoes: "" },
-            { id: 81, nome: "Comadre", categoria: "Insumos", subcategoria: "Outros Insumos", quantidade: 6, imagem: "", observacoes: "" }
-        ];
-
         // PIN de acesso
         const ADMIN_PIN = "1234";
 
@@ -750,6 +697,12 @@
         const shareWhatsappBtn = document.getElementById('share-whatsapp');
         const copySummaryBtn = document.getElementById('copy-summary');
 
+        // Elementos de status
+        const statusDot = document.getElementById('status-dot');
+        const statusText = document.getElementById('status-text');
+        const adminStatusDot = document.getElementById('admin-status-dot');
+        const adminStatusText = document.getElementById('admin-status-text');
+
         // Elementos de navegação
         const categoryView = document.getElementById('category-view');
         const subcategoryView = document.getElementById('subcategory-view');
@@ -766,62 +719,149 @@
         let editingMaterialId = null;
         let currentCategory = null;
         let currentSubcategory = null;
+        let isOnline = false;
+
+        // =============================================
+        // INICIALIZAÇÃO FIREBASE E SISTEMA
+        // =============================================
 
         // Inicialização
         document.addEventListener('DOMContentLoaded', function() {
-            console.log("Iniciando sistema...");
-            loadMaterials();
-            renderCategories();
+            console.log("Iniciando sistema com Firebase Firestore...");
+            initializeFirebase();
             setupEventListeners();
             populateCategorySelects();
-            
-            // Verificar se há dados salvos no localStorage
-            if (materials.length === 0) {
-                console.log("Carregando dados iniciais...");
-                // Se não houver dados, usar os dados iniciais
-                materials = [...initialMaterials];
-                saveMaterials();
-                console.log("Dados iniciais carregados:", materials.length, "materiais");
-            } else {
-                console.log("Dados carregados do localStorage:", materials.length, "materiais");
-            }
         });
 
-        // Configurar event listeners
-        function setupEventListeners() {
-            adminAccessBtn.addEventListener('click', showPinModal);
-            backToMainBtn.addEventListener('click', showMainScreen);
-            confirmPinBtn.addEventListener('click', verifyPin);
-            cancelPinBtn.addEventListener('click', hidePinModal);
-            materialForm.addEventListener('submit', handleMaterialSubmit);
-            cancelEditBtn.addEventListener('click', cancelEdit);
-            backToCategoriesBtn.addEventListener('click', showCategoryView);
-            backToSubcategoriesBtn.addEventListener('click', showSubcategoryView);
+        // Inicializar Firebase e escutar mudanças
+        function initializeFirebase() {
+            showFeedback("Conectando com a nuvem...", "loading");
             
-            // Event listeners para exportação
-            exportPdfBtn.addEventListener('click', exportToPDF);
-            shareWhatsappBtn.addEventListener('click', shareViaWhatsApp);
-            copySummaryBtn.addEventListener('click', copySummaryToClipboard);
-            
-            // Atalho de teclado para acesso administrativo (Ctrl+Alt+F)
-            document.addEventListener('keydown', function(e) {
-                if (e.ctrlKey && e.altKey && e.key === 'F') {
-                    e.preventDefault();
-                    showPinModal();
+            // Escutar mudanças em tempo real
+            db.collection("materials").onSnapshot((snapshot) => {
+                materials = [];
+                snapshot.forEach((doc) => {
+                    materials.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+                
+                updateSyncStatus(true);
+                showFeedback("Dados sincronizados com sucesso!", "success");
+                
+                // Atualizar interface
+                renderCategories();
+                if (currentCategory && currentSubcategory) {
+                    renderMaterialsBySubcategory(currentCategory, currentSubcategory);
                 }
-            });
-            
-            // Atualizar subcategorias quando a categoria for alterada
-            categorySelect.addEventListener('change', function() {
-                updateSubcategorySelect(this.value);
+                
+                console.log("Dados carregados do Firebase:", materials.length, "materiais");
+                
+            }, (error) => {
+                console.error("Erro ao conectar com Firebase:", error);
+                updateSyncStatus(false);
+                showFeedback("Erro de conexão. Usando modo offline.", "error");
+                
+                // Tentar carregar do localStorage como fallback
+                loadFromLocalStorage();
             });
         }
 
+        // Atualizar status de sincronização
+        function updateSyncStatus(online) {
+            isOnline = online;
+            
+            if (online) {
+                statusDot.className = "status-dot status-online";
+                statusText.textContent = "Sincronizado";
+                adminStatusDot.className = "status-dot status-online";
+                adminStatusText.textContent = "Sincronizado";
+            } else {
+                statusDot.className = "status-dot status-offline";
+                statusText.textContent = "Offline";
+                adminStatusDot.className = "status-dot status-offline";
+                adminStatusText.textContent = "Offline";
+            }
+        }
+
+        // Carregar do localStorage como fallback
+        function loadFromLocalStorage() {
+            const storedMaterials = localStorage.getItem('faf-materials');
+            if (storedMaterials) {
+                try {
+                    materials = JSON.parse(storedMaterials);
+                    renderCategories();
+                    showFeedback("Modo offline ativado. Dados locais carregados.", "loading");
+                } catch (e) {
+                    console.error("Erro ao carregar do localStorage:", e);
+                }
+            }
+        }
+
+        // Salvar localmente como backup
+        function saveToLocalStorage() {
+            try {
+                localStorage.setItem('faf-materials', JSON.stringify(materials));
+            } catch (e) {
+                console.error("Erro ao salvar no localStorage:", e);
+            }
+        }
+
         // =============================================
-        // FUNÇÕES DE EXPORTAÇÃO
+        // FUNÇÕES FIREBASE - CRUD (APENAS FIRESTORE)
         // =============================================
 
-        // Exportar para PDF
+        // Adicionar/Atualizar material no Firebase
+        async function saveMaterial(material) {
+            try {
+                if (material.id && material.id.startsWith('local-')) {
+                    // É um material novo
+                    const docRef = await db.collection("materials").add({
+                        nome: material.nome,
+                        categoria: material.categoria,
+                        subcategoria: material.subcategoria,
+                        quantidade: material.quantidade,
+                        imagem: material.imagem,
+                        observacoes: material.observacoes,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    return docRef.id;
+                } else {
+                    // Atualizar material existente
+                    await db.collection("materials").doc(material.id).update({
+                        nome: material.nome,
+                        categoria: material.categoria,
+                        subcategoria: material.subcategoria,
+                        quantidade: material.quantidade,
+                        imagem: material.imagem,
+                        observacoes: material.observacoes,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    return material.id;
+                }
+            } catch (error) {
+                console.error("Erro ao salvar no Firebase:", error);
+                throw error;
+            }
+        }
+
+        // Deletar material do Firebase
+        async function deleteMaterialFromFirebase(id) {
+            try {
+                await db.collection("materials").doc(id).delete();
+            } catch (error) {
+                console.error("Erro ao deletar do Firebase:", error);
+                throw error;
+            }
+        }
+
+        // =============================================
+        // FUNÇÕES DE EXPORTAÇÃO (SEM STORAGE)
+        // =============================================
+
+        // Exportar PDF local
         function exportToPDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
@@ -834,7 +874,7 @@
             // Data
             doc.setFontSize(12);
             doc.setTextColor(100, 100, 100);
-            doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 105, 25, { align: 'center' });
+            doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`, 105, 25, { align: 'center' });
             
             // Resumo
             let yPosition = 40;
@@ -874,7 +914,6 @@
             
             // Detalhamento por categoria
             Object.keys(categorias).forEach(categoria => {
-                // Verificar se precisa de nova página
                 if (yPosition > 250) {
                     doc.addPage();
                     yPosition = 20;
@@ -912,12 +951,12 @@
             
             // Salvar PDF
             doc.save(`relatorio-faf-${new Date().toISOString().split('T')[0]}.pdf`);
-            showFeedback("PDF gerado com sucesso!", "success");
+            showFeedback("PDF gerado com sucesso! Baixe e compartilhe manualmente.", "success");
         }
 
-        // Compartilhar via WhatsApp
-        function shareViaWhatsApp() {
-            let texto = "📋 *RELATÓRIO FAF - ESTOQUE DE MATERIAIS ORTOPÉDICOS*\n\n";
+        // Compartilhar resumo via WhatsApp
+        function shareSummaryViaWhatsApp() {
+            let texto = "📋 *RELATÓRIO FAF - ESTOQUE DE MATERIAIS ORTOPÉDICOS*%0A%0A";
             
             // Resumo por categoria
             const categorias = {};
@@ -930,28 +969,25 @@
             
             Object.keys(categorias).forEach(categoria => {
                 const total = categorias[categoria].reduce((sum, item) => sum + item.quantidade, 0);
-                texto += `🏷️ *${categoria}:* ${categorias[categoria].length} itens, ${total} unidades\n`;
+                texto += `🏷️ *${categoria}:* ${categorias[categoria].length} itens, ${total} unidades%0A`;
             });
             
-            texto += `\n📅 *Data:* ${new Date().toLocaleDateString('pt-BR')}`;
-            texto += `\n⏰ *Hora:* ${new Date().toLocaleTimeString('pt-BR')}`;
-            texto += `\n\n💡 *Itens em falta:* ${materials.filter(m => m.quantidade === 0).length}`;
-            texto += `\n📦 *Total de itens:* ${materials.length}`;
+            texto += `%0A📅 *Data:* ${new Date().toLocaleDateString('pt-BR')}`;
+            texto += `%0A⏰ *Hora:* ${new Date().toLocaleTimeString('pt-BR')}`;
+            texto += `%0A%0A💡 *Itens em falta:* ${materials.filter(m => m.quantidade === 0).length}`;
+            texto += `%0A📦 *Total de itens:* ${materials.length}`;
+            texto += `%0A%0A_Sistema FAF - Sincronizado em Nuvem_`;
+            texto += `%0A%0A💾 *PDF disponível no sistema para download detalhado*`;
             
-            // Codificar texto para URL
-            const textoCodificado = encodeURIComponent(texto);
-            const url = `https://wa.me/?text=${textoCodificado}`;
-            
-            // Abrir WhatsApp
+            const url = `https://wa.me/?text=${texto}`;
             window.open(url, '_blank');
-            showFeedback("WhatsApp aberto com o relatório!", "success");
+            showFeedback("WhatsApp aberto com o resumo!", "success");
         }
 
         // Copiar resumo para área de transferência
         function copySummaryToClipboard() {
             let texto = "RELATÓRIO FAF - ESTOQUE\n\n";
             
-            // Resumo por categoria
             const categorias = {};
             materials.forEach(material => {
                 if (!categorias[material.categoria]) {
@@ -970,14 +1006,14 @@
             });
             
             texto += `Data: ${new Date().toLocaleDateString('pt-BR')}\n`;
+            texto += `Hora: ${new Date().toLocaleTimeString('pt-BR')}\n`;
             texto += `Total de itens: ${materials.length}\n`;
-            texto += `Itens em falta: ${materials.filter(m => m.quantidade === 0).length}`;
+            texto += `Itens em falta: ${materials.filter(m => m.quantidade === 0).length}\n`;
+            texto += `Sistema FAF - Sincronizado em Nuvem`;
             
-            // Copiar para área de transferência
             navigator.clipboard.writeText(texto).then(() => {
                 showFeedback("Resumo copiado para a área de transferência!", "success");
             }).catch(() => {
-                // Fallback para navegadores mais antigos
                 const textArea = document.createElement('textarea');
                 textArea.value = texto;
                 document.body.appendChild(textArea);
@@ -989,39 +1025,44 @@
         }
 
         // =============================================
+        // CONFIGURAÇÃO DE EVENT LISTENERS
+        // =============================================
+
+        function setupEventListeners() {
+            adminAccessBtn.addEventListener('click', showPinModal);
+            backToMainBtn.addEventListener('click', showMainScreen);
+            confirmPinBtn.addEventListener('click', verifyPin);
+            cancelPinBtn.addEventListener('click', hidePinModal);
+            materialForm.addEventListener('submit', handleMaterialSubmit);
+            cancelEditBtn.addEventListener('click', cancelEdit);
+            backToCategoriesBtn.addEventListener('click', showCategoryView);
+            backToSubcategoriesBtn.addEventListener('click', showSubcategoryView);
+            
+            // Event listeners para exportação
+            exportPdfBtn.addEventListener('click', exportToPDF);
+            shareWhatsappBtn.addEventListener('click', shareSummaryViaWhatsApp);
+            copySummaryBtn.addEventListener('click', copySummaryToClipboard);
+            
+            // Atalho de teclado para acesso administrativo (Ctrl+Alt+F)
+            document.addEventListener('keydown', function(e) {
+                if (e.ctrlKey && e.altKey && e.key === 'F') {
+                    e.preventDefault();
+                    showPinModal();
+                }
+            });
+            
+            // Atualizar subcategorias quando a categoria for alterada
+            categorySelect.addEventListener('change', function() {
+                updateSubcategorySelect(this.value);
+            });
+        }
+
+        // =============================================
         // FUNÇÕES EXISTENTES DO SISTEMA
         // =============================================
 
-        // Carregar materiais do localStorage
-        function loadMaterials() {
-            const storedMaterials = localStorage.getItem('faf-materials');
-            if (storedMaterials) {
-                try {
-                    materials = JSON.parse(storedMaterials);
-                    console.log("Materiais carregados do localStorage:", materials);
-                } catch (e) {
-                    console.error("Erro ao carregar materiais:", e);
-                    materials = [];
-                }
-            } else {
-                console.log("Nenhum dado encontrado no localStorage");
-                materials = [];
-            }
-        }
-
-        // Salvar materiais no localStorage
-        function saveMaterials() {
-            try {
-                localStorage.setItem('faf-materials', JSON.stringify(materials));
-                console.log("Materiais salvos no localStorage");
-            } catch (e) {
-                console.error("Erro ao salvar materiais:", e);
-            }
-        }
-
         // Renderizar categorias na tela principal
         function renderCategories() {
-            console.log("Renderizando categorias...");
             categoriesContainer.innerHTML = '';
             
             Object.keys(categoriesData).forEach(category => {
@@ -1029,27 +1070,22 @@
                 btn.className = 'category-btn';
                 btn.textContent = category;
                 btn.addEventListener('click', function() {
-                    console.log("Categoria selecionada:", category);
                     selectCategory(category);
                 });
                 
                 categoriesContainer.appendChild(btn);
             });
-            
-            console.log("Categorias renderizadas:", Object.keys(categoriesData).length);
         }
 
         // Selecionar uma categoria
         function selectCategory(category) {
             currentCategory = category;
-            console.log("Categoria definida:", currentCategory);
             renderSubcategories(category);
             showSubcategoryView();
         }
 
         // Renderizar subcategorias
         function renderSubcategories(category) {
-            console.log("Renderizando subcategorias para:", category);
             subcategoriesContainer.innerHTML = '';
             subcategoryTitle.textContent = `Categoria: ${category}`;
             
@@ -1059,37 +1095,29 @@
                     btn.className = 'subcategory-btn';
                     btn.textContent = subcategory;
                     btn.addEventListener('click', function() {
-                        console.log("Subcategoria selecionada:", subcategory);
                         selectSubcategory(subcategory);
                     });
                     
                     subcategoriesContainer.appendChild(btn);
                 });
-                console.log("Subcategorias renderizadas:", Object.keys(categoriesData[category]).length);
-            } else {
-                console.error("Categoria não encontrada:", category);
             }
         }
 
         // Selecionar uma subcategoria
         function selectSubcategory(subcategory) {
             currentSubcategory = subcategory;
-            console.log("Subcategoria definida:", currentSubcategory);
             renderMaterialsBySubcategory(currentCategory, subcategory);
             showMaterialsView();
         }
 
         // Renderizar materiais por subcategoria
         function renderMaterialsBySubcategory(category, subcategory) {
-            console.log("Renderizando materiais para:", category, "-", subcategory);
             materialsGrid.innerHTML = '';
             materialsTitle.textContent = `${category} - ${subcategory}`;
             
             const filteredMaterials = materials.filter(m => 
                 m.categoria === category && m.subcategoria === subcategory
             );
-            
-            console.log("Materiais filtrados:", filteredMaterials.length);
             
             if (filteredMaterials.length === 0) {
                 materialsGrid.innerHTML = '<p>Nenhum material encontrado nesta subcategoria.</p>';
@@ -1125,41 +1153,52 @@
             // Adicionar event listeners aos botões
             document.querySelectorAll('.btn-add').forEach(btn => {
                 btn.addEventListener('click', function() {
-                    const id = parseInt(this.getAttribute('data-id'));
+                    const id = this.getAttribute('data-id');
                     updateQuantity(id, 1);
                 });
             });
             
             document.querySelectorAll('.btn-remove').forEach(btn => {
                 btn.addEventListener('click', function() {
-                    const id = parseInt(this.getAttribute('data-id'));
+                    const id = this.getAttribute('data-id');
                     updateQuantity(id, -1);
                 });
             });
-            
-            console.log("Materiais renderizados:", filteredMaterials.length);
         }
 
         // Atualizar quantidade de um material
-        function updateQuantity(id, change) {
+        async function updateQuantity(id, change) {
             const materialIndex = materials.findIndex(m => m.id === id);
             if (materialIndex !== -1) {
-                materials[materialIndex].quantidade += change;
+                const newQuantity = materials[materialIndex].quantidade + change;
                 
                 // Garantir que a quantidade não seja negativa
-                if (materials[materialIndex].quantidade < 0) {
-                    materials[materialIndex].quantidade = 0;
+                if (newQuantity < 0) {
+                    showFeedback("Quantidade não pode ser negativa!", "error");
+                    return;
                 }
                 
-                saveMaterials();
-                renderMaterialsBySubcategory(currentCategory, currentSubcategory);
+                materials[materialIndex].quantidade = newQuantity;
                 
-                // Mostrar feedback
-                showFeedback(`Quantidade de ${materials[materialIndex].nome} atualizada!`, 'success');
-                
-                // Se a quantidade chegou a zero, mostrar alerta visual
-                if (materials[materialIndex].quantidade === 0) {
-                    showFeedback(`ATENÇÃO: ${materials[materialIndex].nome} está sem estoque!`, 'error');
+                try {
+                    // Atualizar no Firebase
+                    await db.collection("materials").doc(id).update({
+                        quantidade: newQuantity,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    
+                    // Atualizar localmente
+                    saveToLocalStorage();
+                    renderMaterialsBySubcategory(currentCategory, currentSubcategory);
+                    
+                    showFeedback(`Quantidade de ${materials[materialIndex].nome} atualizada!`, "success");
+                    
+                    if (newQuantity === 0) {
+                        showFeedback(`ATENÇÃO: ${materials[materialIndex].nome} está sem estoque!`, "error");
+                    }
+                } catch (error) {
+                    console.error("Erro ao atualizar quantidade:", error);
+                    showFeedback("Erro de sincronização. Tentando novamente...", "error");
                 }
             }
         }
@@ -1172,7 +1211,7 @@
             
             setTimeout(() => {
                 feedbackMessage.style.display = 'none';
-            }, 3000);
+            }, 4000);
         }
 
         // Mostrar modal de PIN
@@ -1219,7 +1258,6 @@
             categoryView.style.display = 'block';
             subcategoryView.style.display = 'none';
             materialsView.style.display = 'none';
-            console.log("Mostrando view de categorias");
         }
 
         // Mostrar view de subcategorias
@@ -1227,7 +1265,6 @@
             categoryView.style.display = 'none';
             subcategoryView.style.display = 'block';
             materialsView.style.display = 'none';
-            console.log("Mostrando view de subcategorias");
         }
 
         // Mostrar view de materiais
@@ -1235,7 +1272,6 @@
             categoryView.style.display = 'none';
             subcategoryView.style.display = 'none';
             materialsView.style.display = 'block';
-            console.log("Mostrando view de materiais");
         }
 
         // Popular selects de categoria e subcategoria
@@ -1294,24 +1330,24 @@
             // Adicionar event listeners aos botões
             document.querySelectorAll('.btn-edit').forEach(btn => {
                 btn.addEventListener('click', function() {
-                    const id = parseInt(this.getAttribute('data-id'));
+                    const id = this.getAttribute('data-id');
                     editMaterial(id);
                 });
             });
             
             document.querySelectorAll('.btn-delete').forEach(btn => {
                 btn.addEventListener('click', function() {
-                    const id = parseInt(this.getAttribute('data-id'));
+                    const id = this.getAttribute('data-id');
                     deleteMaterial(id);
                 });
             });
         }
 
         // Manipular envio do formulário
-        function handleMaterialSubmit(e) {
+        async function handleMaterialSubmit(e) {
             e.preventDefault();
             
-            const id = materialIdInput.value ? parseInt(materialIdInput.value) : generateId();
+            const id = materialIdInput.value || `local-${Date.now()}`;
             const name = document.getElementById('material-name').value;
             const category = document.getElementById('material-category').value;
             const subcategory = document.getElementById('material-subcategory').value;
@@ -1319,45 +1355,35 @@
             const image = document.getElementById('material-image').value;
             const notes = document.getElementById('material-notes').value;
             
-            if (editingMaterialId !== null) {
-                // Atualizar material existente
-                const materialIndex = materials.findIndex(m => m.id === editingMaterialId);
-                if (materialIndex !== -1) {
-                    materials[materialIndex] = {
-                        id: editingMaterialId,
-                        nome: name,
-                        categoria: category,
-                        subcategoria: subcategory,
-                        quantidade: quantity,
-                        imagem: image,
-                        observacoes: notes
-                    };
-                    
-                    showFeedback(`Material "${name}" atualizado com sucesso!`, 'success');
-                }
-            } else {
-                // Adicionar novo material
-                materials.push({
-                    id: id,
-                    nome: name,
-                    categoria: category,
-                    subcategoria: subcategory,
-                    quantidade: quantity,
-                    imagem: image,
-                    observacoes: notes
-                });
-                
-                showFeedback(`Material "${name}" cadastrado com sucesso!`, 'success');
-            }
+            const materialData = {
+                id: id,
+                nome: name,
+                categoria: category,
+                subcategoria: subcategory,
+                quantidade: quantity,
+                imagem: image,
+                observacoes: notes
+            };
             
-            saveMaterials();
-            renderMaterialsList();
-            resetForm();
-        }
-
-        // Gerar ID para novo material
-        function generateId() {
-            return materials.length > 0 ? Math.max(...materials.map(m => m.id)) + 1 : 1;
+            try {
+                if (editingMaterialId !== null) {
+                    // Atualizar material existente
+                    materialData.id = editingMaterialId;
+                    await saveMaterial(materialData);
+                    showFeedback(`Material "${name}" atualizado com sucesso!`, "success");
+                } else {
+                    // Adicionar novo material
+                    const newId = await saveMaterial(materialData);
+                    showFeedback(`Material "${name}" cadastrado com sucesso!`, "success");
+                }
+                
+                // Os dados serão atualizados automaticamente pelo listener do Firebase
+                resetForm();
+                
+            } catch (error) {
+                console.error("Erro ao salvar material:", error);
+                showFeedback("Erro ao salvar material. Verifique a conexão.", "error");
+            }
         }
 
         // Editar material
@@ -1378,7 +1404,6 @@
                 submitBtn.textContent = 'Atualizar Material';
                 cancelEditBtn.style.display = 'inline-block';
                 
-                // Rolar para o formulário
                 document.querySelector('.form-container').scrollIntoView({ behavior: 'smooth' });
             }
         }
@@ -1400,13 +1425,16 @@
         }
 
         // Excluir material
-        function deleteMaterial(id) {
+        async function deleteMaterial(id) {
             const material = materials.find(m => m.id === id);
             if (material && confirm(`Tem certeza que deseja excluir o material "${material.nome}"?`)) {
-                materials = materials.filter(m => m.id !== id);
-                saveMaterials();
-                renderMaterialsList();
-                showFeedback(`Material "${material.nome}" excluído com sucesso!`, 'success');
+                try {
+                    await deleteMaterialFromFirebase(id);
+                    showFeedback(`Material "${material.nome}" excluído com sucesso!`, "success");
+                } catch (error) {
+                    console.error("Erro ao excluir material:", error);
+                    showFeedback("Erro ao excluir material. Verifique a conexão.", "error");
+                }
             }
         }
     </script>
