@@ -311,6 +311,15 @@
             gap: 8px;
         }
 
+        .btn-populate {
+            background-color: #805ad5;
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
         .form-container {
             background: white;
             padding: 25px;
@@ -540,6 +549,9 @@
                 <button class="btn btn-copy" id="copy-summary">
                     📋 Copiar Resumo
                 </button>
+                <button class="btn btn-populate" id="populate-database">
+                    🎯 Popular Banco de Dados
+                </button>
             </div>
 
             <div class="form-container">
@@ -614,7 +626,6 @@
         // =============================================
         // CONFIGURAÇÃO FIREBASE - PROJETO "MAT ORT"
         // =============================================
-        // SUAS CREDENCIAIS AQUI - COLE AS QUE VOCÊ OBTEVE NO FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyDKDNK_PpL53jzKWVuzKjqiy_ovMOSWohM",
             authDomain: "mat-ort.firebaseapp.com",
@@ -691,6 +702,7 @@
         const materialIdInput = document.getElementById('material-id');
         const categorySelect = document.getElementById('material-category');
         const subcategorySelect = document.getElementById('material-subcategory');
+        const populateDatabaseBtn = document.getElementById('populate-database');
 
         // Elementos de exportação
         const exportPdfBtn = document.getElementById('export-pdf');
@@ -720,6 +732,7 @@
         let currentCategory = null;
         let currentSubcategory = null;
         let isOnline = false;
+        let databasePopulated = false;
 
         // =============================================
         // INICIALIZAÇÃO FIREBASE E SISTEMA
@@ -758,6 +771,11 @@
                 
                 console.log("Dados carregados do Firebase:", materials.length, "materiais");
                 
+                // Verificar se precisa popular o banco
+                if (materials.length === 0 && isOnline && !databasePopulated) {
+                    showFeedback("Banco vazio. Clique em 'Popular Banco' para adicionar materiais de exemplo.", "loading");
+                }
+                
             }, (error) => {
                 console.error("Erro ao conectar com Firebase:", error);
                 updateSyncStatus(false);
@@ -766,6 +784,128 @@
                 // Tentar carregar do localStorage como fallback
                 loadFromLocalStorage();
             });
+        }
+
+        // =============================================
+        // FUNÇÃO PARA POPULAR BANCO DE DADOS
+        // =============================================
+
+        async function popularBancoDados() {
+            if (!isOnline) {
+                showFeedback("Erro: Sem conexão com a internet.", "error");
+                return;
+            }
+
+            showFeedback("Populando banco de dados com materiais de exemplo...", "loading");
+            
+            const materiaisIniciais = [
+                {
+                    nome: "Andador Adulto",
+                    categoria: "Mobilidade",
+                    subcategoria: "Andadores",
+                    quantidade: 5,
+                    imagem: "",
+                    observacoes: "Andador padrão para adultos"
+                },
+                {
+                    nome: "Bengala Adulto",
+                    categoria: "Mobilidade",
+                    subcategoria: "Bengalas", 
+                    quantidade: 8,
+                    imagem: "",
+                    observacoes: "Bengala simples para apoio"
+                },
+                {
+                    nome: "Colar Cervical EVA",
+                    categoria: "Imobilização",
+                    subcategoria: "Colares Cervicais",
+                    quantidade: 3,
+                    imagem: "",
+                    observacoes: "Colar cervical de polietileno"
+                },
+                {
+                    nome: "Joelheira Articulada",
+                    categoria: "Imobilização",
+                    subcategoria: "Joelhos",
+                    quantidade: 6,
+                    imagem: "",
+                    observacoes: "Joelheira com articulação móvel"
+                },
+                {
+                    nome: "Cadeira de Rodas Adulto",
+                    categoria: "Mobilidade",
+                    subcategoria: "Cadeiras de Rodas",
+                    quantidade: 2,
+                    imagem: "",
+                    observacoes: "Cadeira de rodas padrão até 90kg"
+                },
+                {
+                    nome: "Muletas Axilar Adulto",
+                    categoria: "Mobilidade",
+                    subcategoria: "Muletas",
+                    quantidade: 10,
+                    imagem: "",
+                    observacoes: "Muletas axilares para apoio"
+                },
+                {
+                    nome: "Sandália Baruk Plana",
+                    categoria: "Suporte e Conforto",
+                    subcategoria: "Calçados",
+                    quantidade: 4,
+                    imagem: "",
+                    observacoes: "Sandália ortopédica plana"
+                },
+                {
+                    nome: "Cama Hospitalar",
+                    categoria: "Equipamentos Hospitalares",
+                    subcategoria: "Camas",
+                    quantidade: 3,
+                    imagem: "",
+                    observacoes: "Cama hospitalar elétrica"
+                },
+                {
+                    nome: "Fralda Descartável Adulto G",
+                    categoria: "Insumos",
+                    subcategoria: "Fraldas",
+                    quantidade: 25,
+                    imagem: "",
+                    observacoes: "Fralda descartável tamanho G"
+                },
+                {
+                    nome: "Tipoia Adulto",
+                    categoria: "Suporte e Conforto",
+                    subcategoria: "Tipoias",
+                    quantidade: 7,
+                    imagem: "",
+                    observacoes: "Tipoia para imobilização de braço"
+                }
+            ];
+
+            let adicionados = 0;
+            let erros = 0;
+            
+            for (const material of materiaisIniciais) {
+                try {
+                    await db.collection("materials").add({
+                        ...material,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    adicionados++;
+                    console.log(`✅ Material adicionado: ${material.nome}`);
+                } catch (error) {
+                    console.error(`❌ Erro ao adicionar ${material.nome}:`, error);
+                    erros++;
+                }
+            }
+            
+            databasePopulated = true;
+            
+            if (erros === 0) {
+                showFeedback(`✅ Banco populado com sucesso! ${adicionados} materiais adicionados.`, "success");
+            } else {
+                showFeedback(`⚠️ ${adicionados} materiais adicionados, ${erros} erros.`, "error");
+            }
         }
 
         // Atualizar status de sincronização
@@ -1037,6 +1177,7 @@
             cancelEditBtn.addEventListener('click', cancelEdit);
             backToCategoriesBtn.addEventListener('click', showCategoryView);
             backToSubcategoriesBtn.addEventListener('click', showSubcategoryView);
+            populateDatabaseBtn.addEventListener('click', popularBancoDados);
             
             // Event listeners para exportação
             exportPdfBtn.addEventListener('click', exportToPDF);
@@ -1305,7 +1446,7 @@
             materialsListContainer.innerHTML = '';
             
             if (materials.length === 0) {
-                materialsListContainer.innerHTML = '<p>Nenhum material cadastrado.</p>';
+                materialsListContainer.innerHTML = '<p>Nenhum material cadastrado. Use o botão "Popular Banco de Dados" para adicionar materiais de exemplo.</p>';
                 return;
             }
             
@@ -1439,5 +1580,4 @@
         }
     </script>
 </body>
-
 </html>
