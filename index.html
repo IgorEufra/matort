@@ -1181,7 +1181,7 @@
         // Renderizar subcategorias
         function renderSubcategories(category) {
             subcategoriesContainer.innerHTML = '';
-            subcategoryTitle.textContent = `Categoria: ${category} \n`;
+            subcategoryTitle.textContent = `Categoria: ${category} <br>`;
             
             if (categoriesData[category]) {
                 Object.keys(categoriesData[category]).forEach(subcategory => {
@@ -1534,5 +1534,6 @@
     </script>
 </body>
 </html>
+
 
 
