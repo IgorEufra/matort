@@ -933,7 +933,7 @@
                 
                 doc.setFontSize(12);
                 doc.setTextColor(26, 54, 93);
-                doc.text(`CATEGORIA: ${categoria}`, 20, yPosition);
+                doc.text(`CATEGORIA: ${categoria} \n`, 20, yPosition);
                 yPosition += 8;
                 
                 const categoriaData = categorias[categoria].map(item => [
@@ -1181,7 +1181,7 @@
         // Renderizar subcategorias
         function renderSubcategories(category) {
             subcategoriesContainer.innerHTML = '';
-            subcategoryTitle.textContent = `Categoria: ${category}\n`;
+            subcategoryTitle.textContent = `Categoria: ${category}`;
             
             if (categoriesData[category]) {
                 Object.keys(categoriesData[category]).forEach(subcategory => {
@@ -1534,6 +1534,7 @@
     </script>
 </body>
 </html>
+
 
 
 
