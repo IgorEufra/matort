@@ -302,24 +302,6 @@
             gap: 8px;
         }
 
-        .btn-copy {
-            background-color: var(--accent);
-            color: white;
-            padding: 12px 20px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn-populate {
-            background-color: #805ad5;
-            color: white;
-            padding: 12px 20px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
         .form-container {
             background: white;
             padding: 25px;
@@ -446,6 +428,52 @@
             color: #2a4365;
         }
 
+        /* Novo estilo para o modal de compartilhamento */
+        .share-modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        .share-steps {
+            text-align: left;
+            margin: 20px 0;
+            padding: 15px;
+            background: #f7fafc;
+            border-radius: 8px;
+        }
+
+        .share-step {
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .step-number {
+            background: var(--accent);
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .btn-download-share {
+            background-color: #25D366;
+            color: white;
+            padding: 15px 25px;
+            font-size: 1.1rem;
+            margin: 10px;
+        }
+
         /* Responsividade */
         @media (max-width: 768px) {
             .totem-grid {
@@ -538,19 +566,13 @@
                 <button class="btn btn-secondary" id="back-to-main">Voltar ao Painel Principal</button>
             </div>
 
-            <!-- Botões de Exportação -->
+            <!-- Botões de Exportação - SIMPLIFICADO -->
             <div class="export-buttons">
                 <button class="btn btn-export" id="export-pdf">
                     📄 Exportar PDF
                 </button>
                 <button class="btn btn-whatsapp" id="share-whatsapp">
-                    📱 Compartilhar Resumo
-                </button>
-                <button class="btn btn-copy" id="copy-summary">
-                    📋 Copiar Resumo
-                </button>
-                <button class="btn btn-populate" id="populate-database">
-                    🎯 Popular Banco de Dados
+                    📱 Compartilhar no WhatsApp
                 </button>
             </div>
 
@@ -618,6 +640,42 @@
             <div class="form-group">
                 <button class="btn btn-primary" id="confirm-pin">Confirmar</button>
                 <button class="btn btn-secondary" id="cancel-pin">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Compartilhamento -->
+    <div class="modal" id="share-modal">
+        <div class="share-modal-content">
+            <h2>📤 Compartilhar Relatório</h2>
+            <p>Seu PDF foi gerado com sucesso! Siga os passos abaixo:</p>
+            
+            <div class="share-steps">
+                <div class="share-step">
+                    <div class="step-number">1</div>
+                    <span><strong>PDF baixado automaticamente</strong> na sua pasta de Downloads</span>
+                </div>
+                <div class="share-step">
+                    <div class="step-number">2</div>
+                    <span><strong>WhatsApp aberto</strong> com o resumo do relatório</span>
+                </div>
+                <div class="share-step">
+                    <div class="step-number">3</div>
+                    <span><strong>Anexe o PDF</strong> na conversa do WhatsApp</span>
+                </div>
+                <div class="share-step">
+                    <div class="step-number">4</div>
+                    <span><strong>Envie a mensagem</strong> com o PDF anexado</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <button class="btn btn-download-share" id="open-whatsapp">
+                    📱 Abrir WhatsApp Novamente
+                </button>
+                <button class="btn btn-secondary" id="close-share-modal">
+                    Fechar
+                </button>
             </div>
         </div>
     </div>
@@ -702,12 +760,15 @@
         const materialIdInput = document.getElementById('material-id');
         const categorySelect = document.getElementById('material-category');
         const subcategorySelect = document.getElementById('material-subcategory');
-        const populateDatabaseBtn = document.getElementById('populate-database');
 
-        // Elementos de exportação
+        // Elementos de exportação (apenas os necessários)
         const exportPdfBtn = document.getElementById('export-pdf');
         const shareWhatsappBtn = document.getElementById('share-whatsapp');
-        const copySummaryBtn = document.getElementById('copy-summary');
+
+        // Elementos para compartilhamento
+        const shareModal = document.getElementById('share-modal');
+        const openWhatsappBtn = document.getElementById('open-whatsapp');
+        const closeShareModalBtn = document.getElementById('close-share-modal');
 
         // Elementos de status
         const statusDot = document.getElementById('status-dot');
@@ -732,7 +793,7 @@
         let currentCategory = null;
         let currentSubcategory = null;
         let isOnline = false;
-        let databasePopulated = false;
+        let currentWhatsAppText = '';
 
         // =============================================
         // INICIALIZAÇÃO FIREBASE E SISTEMA
@@ -771,11 +832,6 @@
                 
                 console.log("Dados carregados do Firebase:", materials.length, "materiais");
                 
-                // Verificar se precisa popular o banco
-                if (materials.length === 0 && isOnline && !databasePopulated) {
-                    showFeedback("Banco vazio. Clique em 'Popular Banco' para adicionar materiais de exemplo.", "loading");
-                }
-                
             }, (error) => {
                 console.error("Erro ao conectar com Firebase:", error);
                 updateSyncStatus(false);
@@ -787,222 +843,37 @@
         }
 
         // =============================================
-        // FUNÇÃO PARA POPULAR BANCO DE DADOS
+        // SISTEMA DE COMPARTILHAMENTO MELHORADO
         // =============================================
 
-        async function popularBancoDados() {
-            if (!isOnline) {
-                showFeedback("Erro: Sem conexão com a internet.", "error");
-                return;
-            }
-
-            showFeedback("Populando banco de dados com materiais de exemplo...", "loading");
-            
-            const materiaisIniciais = [
-                {
-                    nome: "Andador Adulto",
-                    categoria: "Mobilidade",
-                    subcategoria: "Andadores",
-                    quantidade: 5,
-                    imagem: "",
-                    observacoes: "Andador padrão para adultos"
-                },
-                {
-                    nome: "Bengala Adulto",
-                    categoria: "Mobilidade",
-                    subcategoria: "Bengalas", 
-                    quantidade: 8,
-                    imagem: "",
-                    observacoes: "Bengala simples para apoio"
-                },
-                {
-                    nome: "Colar Cervical EVA",
-                    categoria: "Imobilização",
-                    subcategoria: "Colares Cervicais",
-                    quantidade: 3,
-                    imagem: "",
-                    observacoes: "Colar cervical de polietileno"
-                },
-                {
-                    nome: "Joelheira Articulada",
-                    categoria: "Imobilização",
-                    subcategoria: "Joelhos",
-                    quantidade: 6,
-                    imagem: "",
-                    observacoes: "Joelheira com articulação móvel"
-                },
-                {
-                    nome: "Cadeira de Rodas Adulto",
-                    categoria: "Mobilidade",
-                    subcategoria: "Cadeiras de Rodas",
-                    quantidade: 2,
-                    imagem: "",
-                    observacoes: "Cadeira de rodas padrão até 90kg"
-                },
-                {
-                    nome: "Muletas Axilar Adulto",
-                    categoria: "Mobilidade",
-                    subcategoria: "Muletas",
-                    quantidade: 10,
-                    imagem: "",
-                    observacoes: "Muletas axilares para apoio"
-                },
-                {
-                    nome: "Sandália Baruk Plana",
-                    categoria: "Suporte e Conforto",
-                    subcategoria: "Calçados",
-                    quantidade: 4,
-                    imagem: "",
-                    observacoes: "Sandália ortopédica plana"
-                },
-                {
-                    nome: "Cama Hospitalar",
-                    categoria: "Equipamentos Hospitalares",
-                    subcategoria: "Camas",
-                    quantidade: 3,
-                    imagem: "",
-                    observacoes: "Cama hospitalar elétrica"
-                },
-                {
-                    nome: "Fralda Descartável Adulto G",
-                    categoria: "Insumos",
-                    subcategoria: "Fraldas",
-                    quantidade: 25,
-                    imagem: "",
-                    observacoes: "Fralda descartável tamanho G"
-                },
-                {
-                    nome: "Tipoia Adulto",
-                    categoria: "Suporte e Conforto",
-                    subcategoria: "Tipoias",
-                    quantidade: 7,
-                    imagem: "",
-                    observacoes: "Tipoia para imobilização de braço"
-                }
-            ];
-
-            let adicionados = 0;
-            let erros = 0;
-            
-            for (const material of materiaisIniciais) {
-                try {
-                    await db.collection("materials").add({
-                        ...material,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    adicionados++;
-                    console.log(`✅ Material adicionado: ${material.nome}`);
-                } catch (error) {
-                    console.error(`❌ Erro ao adicionar ${material.nome}:`, error);
-                    erros++;
-                }
-            }
-            
-            databasePopulated = true;
-            
-            if (erros === 0) {
-                showFeedback(`✅ Banco populado com sucesso! ${adicionados} materiais adicionados.`, "success");
-            } else {
-                showFeedback(`⚠️ ${adicionados} materiais adicionados, ${erros} erros.`, "error");
-            }
-        }
-
-        // Atualizar status de sincronização
-        function updateSyncStatus(online) {
-            isOnline = online;
-            
-            if (online) {
-                statusDot.className = "status-dot status-online";
-                statusText.textContent = "Sincronizado";
-                adminStatusDot.className = "status-dot status-online";
-                adminStatusText.textContent = "Sincronizado";
-            } else {
-                statusDot.className = "status-dot status-offline";
-                statusText.textContent = "Offline";
-                adminStatusDot.className = "status-dot status-offline";
-                adminStatusText.textContent = "Offline";
-            }
-        }
-
-        // Carregar do localStorage como fallback
-        function loadFromLocalStorage() {
-            const storedMaterials = localStorage.getItem('faf-materials');
-            if (storedMaterials) {
-                try {
-                    materials = JSON.parse(storedMaterials);
-                    renderCategories();
-                    showFeedback("Modo offline ativado. Dados locais carregados.", "loading");
-                } catch (e) {
-                    console.error("Erro ao carregar do localStorage:", e);
-                }
-            }
-        }
-
-        // Salvar localmente como backup
-        function saveToLocalStorage() {
+        // Função principal de compartilhamento
+        function sharePDFViaWhatsApp() {
             try {
-                localStorage.setItem('faf-materials', JSON.stringify(materials));
-            } catch (e) {
-                console.error("Erro ao salvar no localStorage:", e);
-            }
-        }
-
-        // =============================================
-        // FUNÇÕES FIREBASE - CRUD (APENAS FIRESTORE)
-        // =============================================
-
-        // Adicionar/Atualizar material no Firebase
-        async function saveMaterial(material) {
-            try {
-                if (material.id && material.id.startsWith('local-')) {
-                    // É um material novo
-                    const docRef = await db.collection("materials").add({
-                        nome: material.nome,
-                        categoria: material.categoria,
-                        subcategoria: material.subcategoria,
-                        quantidade: material.quantidade,
-                        imagem: material.imagem,
-                        observacoes: material.observacoes,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    return docRef.id;
-                } else {
-                    // Atualizar material existente
-                    await db.collection("materials").doc(material.id).update({
-                        nome: material.nome,
-                        categoria: material.categoria,
-                        subcategoria: material.subcategoria,
-                        quantidade: material.quantidade,
-                        imagem: material.imagem,
-                        observacoes: material.observacoes,
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                    return material.id;
-                }
+                showFeedback("Gerando PDF e preparando compartilhamento...", "loading");
+                
+                // Gera o PDF primeiro
+                const pdfBlob = generatePDFBlob();
+                
+                // Força download automático
+                downloadPDF(pdfBlob);
+                
+                // Prepara texto para WhatsApp
+                currentWhatsAppText = generateWhatsAppText();
+                
+                // Abre WhatsApp
+                openWhatsApp(currentWhatsAppText);
+                
+                // Mostra modal de instruções
+                showShareModal();
+                
             } catch (error) {
-                console.error("Erro ao salvar no Firebase:", error);
-                throw error;
+                console.error("Erro no compartilhamento:", error);
+                showFeedback("Erro ao compartilhar. Tente novamente.", "error");
             }
         }
 
-        // Deletar material do Firebase
-        async function deleteMaterialFromFirebase(id) {
-            try {
-                await db.collection("materials").doc(id).delete();
-            } catch (error) {
-                console.error("Erro ao deletar do Firebase:", error);
-                throw error;
-            }
-        }
-
-        // =============================================
-        // FUNÇÕES DE EXPORTAÇÃO (SEM STORAGE)
-        // =============================================
-
-        // Exportar PDF local
-        function exportToPDF() {
+        // Gerar PDF como Blob
+        function generatePDFBlob() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             
@@ -1089,16 +960,25 @@
                 yPosition = doc.lastAutoTable.finalY + 10;
             });
             
-            // Salvar PDF
-            doc.save(`relatorio-mat-ort-${new Date().toISOString().split('T')[0]}.pdf`);
-            showFeedback("PDF gerado com sucesso! Baixe e compartilhe manualmente.", "success");
+            return doc.output('blob');
         }
 
-        // Compartilhar resumo via WhatsApp
-        function shareSummaryViaWhatsApp() {
+        // Download automático do PDF
+        function downloadPDF(pdfBlob) {
+            const pdfUrl = URL.createObjectURL(pdfBlob);
+            const link = document.createElement('a');
+            link.href = pdfUrl;
+            link.download = `relatorio-mat-ort-${new Date().toISOString().split('T')[0]}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(pdfUrl);
+        }
+
+        // Gerar texto para WhatsApp
+        function generateWhatsAppText() {
             let texto = "📋 *RELATÓRIO MAT ORT - ESTOQUE DE MATERIAIS ORTOPÉDICOS*%0A%0A";
             
-            // Resumo por categoria
             const categorias = {};
             materials.forEach(material => {
                 if (!categorias[material.categoria]) {
@@ -1116,52 +996,119 @@
             texto += `%0A⏰ *Hora:* ${new Date().toLocaleTimeString('pt-BR')}`;
             texto += `%0A%0A💡 *Itens em falta:* ${materials.filter(m => m.quantidade === 0).length}`;
             texto += `%0A📦 *Total de itens:* ${materials.length}`;
+            texto += `%0A%0A📎 *PDF anexado com relatório completo*`;
             texto += `%0A%0A_Sistema Mat Ort - Sincronizado em Nuvem_`;
-            texto += `%0A%0A💾 *PDF disponível no sistema para download detalhado*`;
             
-            const url = `https://wa.me/?text=${texto}`;
-            window.open(url, '_blank');
-            showFeedback("WhatsApp aberto com o resumo!", "success");
+            return texto;
         }
 
-        // Copiar resumo para área de transferência
-        function copySummaryToClipboard() {
-            let texto = "RELATÓRIO MAT ORT - ESTOQUE\n\n";
+        // Abrir WhatsApp
+        function openWhatsApp(text) {
+            const url = `https://wa.me/?text=${text}`;
+            window.open(url, '_blank');
+        }
+
+        // Mostrar modal de instruções
+        function showShareModal() {
+            shareModal.style.display = 'flex';
+        }
+
+        // Esconder modal de instruções
+        function hideShareModal() {
+            shareModal.style.display = 'none';
+        }
+
+        // =============================================
+        // FUNÇÕES EXISTENTES DO SISTEMA
+        // =============================================
+
+        // Atualizar status de sincronização
+        function updateSyncStatus(online) {
+            isOnline = online;
             
-            const categorias = {};
-            materials.forEach(material => {
-                if (!categorias[material.categoria]) {
-                    categorias[material.categoria] = [];
+            if (online) {
+                statusDot.className = "status-dot status-online";
+                statusText.textContent = "Sincronizado";
+                adminStatusDot.className = "status-dot status-online";
+                adminStatusText.textContent = "Sincronizado";
+            } else {
+                statusDot.className = "status-dot status-offline";
+                statusText.textContent = "Offline";
+                adminStatusDot.className = "status-dot status-offline";
+                adminStatusText.textContent = "Offline";
+            }
+        }
+
+        // Carregar do localStorage como fallback
+        function loadFromLocalStorage() {
+            const storedMaterials = localStorage.getItem('faf-materials');
+            if (storedMaterials) {
+                try {
+                    materials = JSON.parse(storedMaterials);
+                    renderCategories();
+                    showFeedback("Modo offline ativado. Dados locais carregados.", "loading");
+                } catch (e) {
+                    console.error("Erro ao carregar do localStorage:", e);
                 }
-                categorias[material.categoria].push(material);
-            });
-            
-            Object.keys(categorias).forEach(categoria => {
-                texto += `${categoria}:\n`;
-                categorias[categoria].forEach(material => {
-                    const status = material.quantidade === 0 ? '❌ ESGOTADO' : '✅';
-                    texto += `  ${status} ${material.nome}: ${material.quantidade} unidades\n`;
-                });
-                texto += '\n';
-            });
-            
-            texto += `Data: ${new Date().toLocaleDateString('pt-BR')}\n`;
-            texto += `Hora: ${new Date().toLocaleTimeString('pt-BR')}\n`;
-            texto += `Total de itens: ${materials.length}\n`;
-            texto += `Itens em falta: ${materials.filter(m => m.quantidade === 0).length}\n`;
-            texto += `Sistema Mat Ort - Sincronizado em Nuvem`;
-            
-            navigator.clipboard.writeText(texto).then(() => {
-                showFeedback("Resumo copiado para a área de transferência!", "success");
-            }).catch(() => {
-                const textArea = document.createElement('textarea');
-                textArea.value = texto;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-                showFeedback("Resumo copiado para a área de transferência!", "success");
-            });
+            }
+        }
+
+        // Salvar localmente como backup
+        function saveToLocalStorage() {
+            try {
+                localStorage.setItem('faf-materials', JSON.stringify(materials));
+            } catch (e) {
+                console.error("Erro ao salvar no localStorage:", e);
+            }
+        }
+
+        // Funções Firebase CRUD
+        async function saveMaterial(material) {
+            try {
+                if (material.id && material.id.startsWith('local-')) {
+                    const docRef = await db.collection("materials").add({
+                        nome: material.nome,
+                        categoria: material.categoria,
+                        subcategoria: material.subcategoria,
+                        quantidade: material.quantidade,
+                        imagem: material.imagem,
+                        observacoes: material.observacoes,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    return docRef.id;
+                } else {
+                    await db.collection("materials").doc(material.id).update({
+                        nome: material.nome,
+                        categoria: material.categoria,
+                        subcategoria: material.subcategoria,
+                        quantidade: material.quantidade,
+                        imagem: material.imagem,
+                        observacoes: material.observacoes,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    return material.id;
+                }
+            } catch (error) {
+                console.error("Erro ao salvar no Firebase:", error);
+                throw error;
+            }
+        }
+
+        async function deleteMaterialFromFirebase(id) {
+            try {
+                await db.collection("materials").doc(id).delete();
+            } catch (error) {
+                console.error("Erro ao deletar do Firebase:", error);
+                throw error;
+            }
+        }
+
+        // Exportar PDF simples
+        function exportToPDF() {
+            const pdfBlob = generatePDFBlob();
+            downloadPDF(pdfBlob);
+            showFeedback("PDF gerado com sucesso! Verifique sua pasta de downloads.", "success");
         }
 
         // =============================================
@@ -1177,12 +1124,17 @@
             cancelEditBtn.addEventListener('click', cancelEdit);
             backToCategoriesBtn.addEventListener('click', showCategoryView);
             backToSubcategoriesBtn.addEventListener('click', showSubcategoryView);
-            populateDatabaseBtn.addEventListener('click', popularBancoDados);
             
-            // Event listeners para exportação
+            // Event listeners para exportação (apenas os necessários)
             exportPdfBtn.addEventListener('click', exportToPDF);
-            shareWhatsappBtn.addEventListener('click', shareSummaryViaWhatsApp);
-            copySummaryBtn.addEventListener('click', copySummaryToClipboard);
+            shareWhatsappBtn.addEventListener('click', sharePDFViaWhatsApp);
+            
+            // Listeners para o modal de compartilhamento
+            openWhatsappBtn.addEventListener('click', function() {
+                openWhatsApp(currentWhatsAppText);
+            });
+            
+            closeShareModalBtn.addEventListener('click', hideShareModal);
             
             // Atalho de teclado para acesso administrativo (Ctrl+Alt+F)
             document.addEventListener('keydown', function(e) {
@@ -1199,7 +1151,7 @@
         }
 
         // =============================================
-        // FUNÇÕES EXISTENTES DO SISTEMA
+        // FUNÇÕES DE INTERFACE
         // =============================================
 
         // Renderizar categorias na tela principal
@@ -1446,7 +1398,7 @@
             materialsListContainer.innerHTML = '';
             
             if (materials.length === 0) {
-                materialsListContainer.innerHTML = '<p>Nenhum material cadastrado. Use o botão "Popular Banco de Dados" para adicionar materiais de exemplo.</p>';
+                materialsListContainer.innerHTML = '<p>Nenhum material cadastrado. Use o formulário acima para adicionar materiais.</p>';
                 return;
             }
             
