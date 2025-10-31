@@ -681,7 +681,125 @@
             </div>
         </div>
     </div>
+    <!-- Botão temporário para carregar todos os materiais -->
+<div style="text-align: center; margin: 20px 0;">
+    <button class="btn btn-primary" id="load-all-materials" style="background-color: #d63384;">
+        🚀 CARREGAR TODOS OS MATERIAIS DO FAF
+    </button>
+</div>
 
+<script>
+// =============================================
+// FUNÇÃO PARA CARREGAR TODOS OS MATERIAIS DO FAF
+// =============================================
+document.getElementById('load-all-materials').addEventListener('click', async function() {
+    const todosMateriais = [
+        // MOBILIDADE
+        { nome: "ANDADOR ADULTO", categoria: "Mobilidade", subcategoria: "Andadores", quantidade: 7 },
+        { nome: "ANDADOR INFANTIL", categoria: "Mobilidade", subcategoria: "Andadores", quantidade: 3 },
+        { nome: "BENGALA ADULTO", categoria: "Mobilidade", subcategoria: "Bengalas", quantidade: 1 },
+        { nome: "BENGALA INFANTIL", categoria: "Mobilidade", subcategoria: "Bengalas", quantidade: 1 },
+        { nome: "BENGALA 4 PONTAS", categoria: "Mobilidade", subcategoria: "Bengalas", quantidade: 2 },
+        { nome: "CADEIRA DE BANHO ATÉ 85 KG", categoria: "Mobilidade", subcategoria: "Cadeiras de Banho", quantidade: 3 },
+        { nome: "CADEIRA DE BANHO ATÉ 100 KG", categoria: "Mobilidade", subcategoria: "Cadeiras de Banho", quantidade: 1 },
+        { nome: "CADEIRA DE RODAS ADULTO ATÉ 90 KG", categoria: "Mobilidade", subcategoria: "Cadeiras de Rodas", quantidade: 7 },
+        { nome: "CADEIRA DE RODAS ADULTO 120KG", categoria: "Mobilidade", subcategoria: "Cadeiras de Rodas", quantidade: 0 },
+        { nome: "CADEIRA DE RODAS ADULTO SEMI OBESO", categoria: "Mobilidade", subcategoria: "Cadeiras de Rodas", quantidade: 0 },
+        { nome: "CADEIRA DE RODAS INFANTIL", categoria: "Mobilidade", subcategoria: "Cadeiras de Rodas", quantidade: 1 },
+        { nome: "CADEIRA DE RODAS DE ELEVAÇÃO PERNA", categoria: "Mobilidade", subcategoria: "Cadeiras de Rodas", quantidade: 0 },
+        { nome: "CADEIRA DE RODAS DE TRANSFERÊNCIA ADULTO", categoria: "Mobilidade", subcategoria: "Cadeiras de Rodas", quantidade: 1 },
+        { nome: "MULETAS AXILAR ADULTO", categoria: "Mobilidade", subcategoria: "Muletas", quantidade: 8 },
+        { nome: "MULETA AXILAR INFANTIL", categoria: "Mobilidade", subcategoria: "Muletas", quantidade: 2 },
+        { nome: "MULETAS CANADENSE ADULTO", categoria: "Mobilidade", subcategoria: "Muletas", quantidade: 8 },
+        { nome: "MULETA CANADENSE INFANTIL", categoria: "Mobilidade", subcategoria: "Muletas", quantidade: 1 },
+
+        // IMOBILIZAÇÃO
+        { nome: "COLAR CERVICAL PARA TQT EVA / POLIETILENO", categoria: "Imobilização", subcategoria: "Colares Cervicais", quantidade: 1 },
+        { nome: "COLAR CERVICAL EVA/POLIETILENO", categoria: "Imobilização", subcategoria: "Colares Cervicais", quantidade: 1 },
+        { nome: "COLETE JEWETT", categoria: "Imobilização", subcategoria: "Coletes", quantidade: 1 },
+        { nome: "COLETE PUTTI BAIXO", categoria: "Imobilização", subcategoria: "Coletes", quantidade: 7 },
+        { nome: "COLETE PUTTI ALTO", categoria: "Imobilização", subcategoria: "Coletes", quantidade: 7 },
+        { nome: "ESTABILIZADOR DE TORNOZELO", categoria: "Imobilização", subcategoria: "Tornozeleiras", quantidade: 8 },
+        { nome: "JOELHEIRA", categoria: "Imobilização", subcategoria: "Joelhos", quantidade: 2 },
+        { nome: "JOELHEIRA ARTICULADA", categoria: "Imobilização", subcategoria: "Joelhos", quantidade: 6 },
+        { nome: "IMOBILIZADOR DE JOELHO", categoria: "Imobilização", subcategoria: "Joelhos", quantidade: 7 },
+        { nome: "TALA PARA PUNHO DIREITO", categoria: "Imobilização", subcategoria: "Punhos", quantidade: 3 },
+        { nome: "TALA PARA PUNHO ESQUERDO", categoria: "Imobilização", subcategoria: "Punhos", quantidade: 8 },
+        { nome: "TALA PARA PUNHO E POLEGAR", categoria: "Imobilização", subcategoria: "Punhos", quantidade: 1 },
+        { nome: "SUPORTE DE OMBRO", categoria: "Imobilização", subcategoria: "Outros Imobilização", quantidade: 1 },
+
+        // SUPORTE E CONFORTO
+        { nome: "ALMOFADA PARA CONFORTO DA PRÓSTATA", categoria: "Suporte e Conforto", subcategoria: "Almofadas", quantidade: 1 },
+        { nome: "CINTA ABDOMINAL 100 X 20CM", categoria: "Suporte e Conforto", subcategoria: "Cintas", quantidade: 1 },
+        { nome: "CUNHA ALMOFADADA", categoria: "Suporte e Conforto", subcategoria: "Almofadas", quantidade: 1 },
+        { nome: "ROBOFOOT", categoria: "Suporte e Conforto", subcategoria: "Calçados", quantidade: 20 },
+        { nome: "SANDALIA BARUK PLANA TAMANHO M", categoria: "Suporte e Conforto", subcategoria: "Calçados", quantidade: 4 },
+        { nome: "SANDALIA BARUK RETROPÉ TAMANHO M", categoria: "Suporte e Conforto", subcategoria: "Calçados", quantidade: 1 },
+        { nome: "SANDALIA BARUK RETROPÉ TAMANHO P", categoria: "Suporte e Conforto", subcategoria: "Calçados", quantidade: 1 },
+        { nome: "TIPOIA M BILATERAL", categoria: "Suporte e Conforto", subcategoria: "Tipoias", quantidade: 14 },
+        { nome: "TIPOIA G BILATERAL", categoria: "Suporte e Conforto", subcategoria: "Tipoias", quantidade: 3 },
+        { nome: "TIPOIA P BILATERAL", categoria: "Suporte e Conforto", subcategoria: "Tipoias", quantidade: 4 },
+        { nome: "TIPOIA INFANTIL", categoria: "Suporte e Conforto", subcategoria: "Tipoias", quantidade: 1 },
+
+        // EQUIPAMENTOS HOSPITALARES
+        { nome: "ASPIRADOR CIRÚRGICO", categoria: "Equipamentos Hospitalares", subcategoria: "Equipamentos Diversos", quantidade: 4 },
+        { nome: "BOMBA A VACUO ASPIRADORA", categoria: "Equipamentos Hospitalares", subcategoria: "Equipamentos Diversos", quantidade: 1 },
+        { nome: "BOMBA DE PRESSÃO", categoria: "Equipamentos Hospitalares", subcategoria: "Equipamentos Diversos", quantidade: 1 },
+        { nome: "CAMA HOSPITALAR", categoria: "Equipamentos Hospitalares", subcategoria: "Camas", quantidade: 5 },
+        { nome: "CILINDRO DE OXIGÊNIO HOSPITALAR", categoria: "Equipamentos Hospitalares", subcategoria: "Respiratórios", quantidade: 1 },
+        { nome: "COLCHÃO CAIXA DE OVO", categoria: "Equipamentos Hospitalares", subcategoria: "Colchões", quantidade: 2 },
+        { nome: "COLCHÃO HOSPITALAR", categoria: "Equipamentos Hospitalares", subcategoria: "Colchões", quantidade: 2 },
+        { nome: "COLCHÃO PNEUMÁTICO", categoria: "Equipamentos Hospitalares", subcategoria: "Colchões", quantidade: 1 },
+        { nome: "GUINCHO HOSPITALAR", categoria: "Equipamentos Hospitalares", subcategoria: "Equipamentos Diversos", quantidade: 1 },
+        { nome: "INALADOR", categoria: "Equipamentos Hospitalares", subcategoria: "Respiratórios", quantidade: 4 },
+        { nome: "PAPAGAIO", categoria: "Equipamentos Hospitalares", subcategoria: "Equipamentos Diversos", quantidade: 1 },
+        { nome: "RESPIRADOR", categoria: "Equipamentos Hospitalares", subcategoria: "Respiratórios", quantidade: 0 },
+        { nome: "SUPORTE PARA SORO", categoria: "Equipamentos Hospitalares", subcategoria: "Equipamentos Diversos", quantidade: 1 },
+
+        // INSUMOS
+        { nome: "AP. PRESSÃO DIGITAL", categoria: "Insumos", subcategoria: "Outros Insumos", quantidade: 3 },
+        { nome: "CALHA PARA PÉ", categoria: "Insumos", subcategoria: "Outros Insumos", quantidade: 1 },
+        { nome: "CESTA BÁSICA", categoria: "Insumos", subcategoria: "Outros Insumos", quantidade: 2 },
+        { nome: "COMADRE", categoria: "Insumos", subcategoria: "Outros Insumos", quantidade: 6 },
+        { nome: "FRALDA DESCARTAVEL ADULTO TAM G", categoria: "Insumos", subcategoria: "Fraldas", quantidade: 0 },
+        { nome: "FRALDA DESCARTAVEL ADULTO TAM M", categoria: "Insumos", subcategoria: "Fraldas", quantidade: 1 },
+        { nome: "FRALDA DESCARTAVEL ADULTO TAM XG", categoria: "Insumos", subcategoria: "Fraldas", quantidade: 3 },
+        { nome: "SONDA URETRAL", categoria: "Insumos", subcategoria: "Sondas", quantidade: 2 },
+        { nome: "TERMÔMETRO SENSOR", categoria: "Insumos", subcategoria: "Outros Insumos", quantidade: 3 }
+    ];
+
+    showFeedback("Iniciando carga de materiais...", "loading");
+    
+    let inseridos = 0;
+    let erros = 0;
+
+    for (const material of todosMateriais) {
+        try {
+            await db.collection("materials").add({
+                nome: material.nome,
+                categoria: material.categoria,
+                subcategoria: material.subcategoria,
+                quantidade: material.quantidade,
+                imagem: "",
+                observacoes: "",
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            inseridos++;
+            console.log(`✅ ${material.nome}`);
+        } catch (error) {
+            console.error(`❌ ${material.nome}:`, error);
+            erros++;
+        }
+    }
+
+    if (erros === 0) {
+        showFeedback(`🎉 TODOS OS ${inseridos} MATERIAIS FORAM CADASTRADOS COM SUCESSO!`, "success");
+    } else {
+        showFeedback(`✅ ${inseridos} materiais cadastrados, ❌ ${erros} erros`, "error");
+    }
+});
+</script>
     <script>
         // =============================================
         // CONFIGURAÇÃO FIREBASE - PROJETO "MAT ORT"
@@ -1535,6 +1653,7 @@
     </script>
 </body>
 </html>
+
 
 
 
